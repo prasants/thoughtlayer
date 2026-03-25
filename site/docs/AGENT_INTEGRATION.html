@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Integration: ThoughtLayer Docs</title>
+  <meta name="description" content="ThoughtLayer documentation: Agent Integration">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #09090b;
+      --text: #e4e4e7;
+      --text-secondary: #71717a;
+      --text-dim: #52525b;
+      --accent: #a78bfa;
+      --green: #4ade80;
+      --surface: #18181b;
+      --border: #27272a;
+      --code-bg: #0f0f12;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Inter', -apple-system, system-ui, sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 2rem 1.5rem;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      overflow-y: auto;
+    }
+
+    .sidebar .logo {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-decoration: none;
+      display: block;
+      margin-bottom: 2rem;
+    }
+
+    .sidebar nav {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .sidebar nav a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      transition: all 0.15s;
+    }
+
+    .sidebar nav a:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .sidebar nav a.active {
+      color: var(--accent);
+      background: rgba(167, 139, 250, 0.1);
+    }
+
+    .sidebar .back-link {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .sidebar .back-link a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.85rem;
+    }
+
+    .sidebar .back-link a:hover { color: var(--text-secondary); }
+
+    /* Main content */
+    .main {
+      margin-left: 260px;
+      padding: 3rem 4rem;
+      max-width: 900px;
+      width: 100%;
+    }
+
+    /* Typography */
+    h1 { font-size: 2rem; font-weight: 600; margin-bottom: 1.5rem; color: var(--text); }
+    h2 { font-size: 1.4rem; font-weight: 600; margin: 2.5rem 0 1rem; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+    h3 { font-size: 1.15rem; font-weight: 600; margin: 2rem 0 0.75rem; color: var(--text); }
+    h4 { font-size: 1rem; font-weight: 600; margin: 1.5rem 0 0.5rem; color: var(--text-secondary); }
+
+    p { margin-bottom: 1rem; color: var(--text-secondary); }
+    strong { color: var(--text); font-weight: 500; }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { margin: 0 0 1rem 1.5rem; color: var(--text-secondary); }
+    li { margin-bottom: 0.4rem; }
+
+    hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+    /* Code */
+    code {
+      font-family: var(--mono);
+      font-size: 0.85em;
+      background: var(--code-bg);
+      padding: 0.2em 0.4em;
+      border-radius: 4px;
+      color: var(--accent);
+    }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      overflow-x: auto;
+      margin: 1rem 0 1.5rem;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+
+    /* Tables */
+    .table-wrapper {
+      overflow-x: auto;
+      margin: 1rem 0 1.5rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      padding: 0.6rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      color: var(--text);
+      font-weight: 500;
+      background: var(--surface);
+    }
+
+    td { color: var(--text-secondary); }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .sidebar {
+        position: static;
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        padding: 1rem;
+      }
+
+      .sidebar nav { flex-direction: row; flex-wrap: wrap; gap: 0.25rem; }
+
+      .main {
+        margin-left: 0;
+        padding: 2rem 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <a href="/" class="logo">⚡ ThoughtLayer</a>
+    <nav>
+            <a href="/docs/getting-started.html">Getting Started</a>
+            <a href="/docs/API.html">API Reference</a>
+            <a href="/docs/ARCHITECTURE.html">Architecture</a>
+            <a href="/docs/MCP.html">MCP Server</a>
+            <a href="/docs/AGENT_INTEGRATION.html" class="active">Agent Integration</a>
+    </nav>
+    <div class="back-link">
+      <a href="/">← Back to home</a><br>
+      <a href="https://github.com/prasants/thoughtlayer">GitHub</a> ·
+      <a href="https://www.npmjs.com/package/thoughtlayer">npm</a>
+    </div>
+  </aside>
+  <main class="main">
+    <h1 id="agent-integration-guide">Agent Integration Guide</h1>
+<p>Integrating ThoughtLayer into AI agent workflows: OpenClaw, LangChain, CrewAI, and others.</p>
+<h2 id="quick-start">Quick Start</h2>
+<pre><code class="language-typescript">import { ThoughtLayer, queryForPrompt } from 'thoughtlayer';
+
+// Load ThoughtLayer (reads from .thoughtlayer/ in project root)
+const thoughtlayer = ThoughtLayer.load('/path/to/project');
+
+// Before handling a task, get relevant context
+const context = await queryForPrompt(thoughtlayer, 'user asked about authentication');
+
+// Inject into prompt
+const systemPrompt = `
+You are a helpful assistant.
+
+${context}
+
+Answer the user's question.
+`;</code></pre>
+<h2 id="when-to-query">When to Query</h2>
+<p>Query ThoughtLayer when the agent needs <strong>domain knowledge</strong> to handle a task:</p>
+<div class="table-wrapper"><table>
+<thead><tr>
+<th>Scenario</th>
+<th>Query</th>
+</tr></thead><tbody>
+<tr>
+<td>User asks "who is the CEO?"</td>
+<td><code>queryForPrompt(thoughtlayer, 'CEO leadership')</code></td>
+</tr>
+<tr>
+<td>Task involves compliance</td>
+<td><code>queryForPrompt(thoughtlayer, 'compliance rules', { domain: 'rules' })</code></td>
+</tr>
+<tr>
+<td>Debugging auth issues</td>
+<td><code>queryForPrompt(thoughtlayer, 'authentication jwt oauth')</code></td>
+</tr>
+<tr>
+<td>Health-related task</td>
+<td><code>queryForPrompt(thoughtlayer, task_description, { domain: 'health' })</code></td>
+</tr>
+</tbody></table></div>
+<p><strong>Don't query on every heartbeat.</strong> Only query when handling a specific task that might need context. This saves tokens and keeps context focused.</p>
+<h2 id="api">API</h2>
+<h3 id="queryforprompt-thoughtlayer-query-options"><code>queryForPrompt(thoughtlayer, query, options?)</code></h3>
+<p>Returns a formatted string ready for prompt injection. Empty string if no relevant results.</p>
+<pre><code class="language-typescript">const context = await queryForPrompt(thoughtlayer, 'database architecture', {
+  topK: 3,           // Max results (default: 3)
+  domain: 'infra',   // Filter by domain (optional)
+  minScore: 0.1,     // Minimum relevance score (default: 0.1)
+});</code></pre>
+<p><strong>Output format:</strong></p>
+<pre><code class="language-markdown">## Relevant Knowledge (from ThoughtLayer)
+
+[1] **PostgreSQL Choice** (infrastructure/database)
+We chose PostgreSQL because of JSON support and pgvector for embeddings...
+
+[2] **Database Migrations** (infrastructure/database)
+All migrations run via Prisma. Never modify production directly...
+
+---</code></pre>
+<h3 id="getcontext-thoughtlayer-query-options"><code>getContext(thoughtlayer, query, options?)</code></h3>
+<p>Returns the full context object with metadata:</p>
+<pre><code class="language-typescript">const ctx = await getContext(thoughtlayer, 'expense tracking rules');
+
+ctx.query;    // Original query
+ctx.results;  // Array of RetrievalResult (with full entries)
+ctx.summary;  // Formatted summary string
+ctx.sources;  // Array of source citations ["Title [id]", ...]</code></pre>
+<p>Use this when you need programmatic access to results (e.g., to extract specific facts or check domains).</p>
+<h3 id="formatcontextforprompt-ctx"><code>formatContextForPrompt(ctx)</code></h3>
+<p>Convert a context object to a prompt-ready string:</p>
+<pre><code class="language-typescript">const ctx = await getContext(thoughtlayer, 'auth flow');
+// ... maybe filter or modify ctx ...
+const prompt = formatContextForPrompt(ctx);</code></pre>
+<h2 id="openclaw-heartbeat-integration">OpenClaw Heartbeat Integration</h2>
+<p>For OpenClaw agents, integrate at the task-handling level, not the heartbeat level:</p>
+<pre><code class="language-typescript">// In agent task handler (not heartbeat)
+async function handleTask(task: string) {
+  const thoughtlayer = ThoughtLayer.load(process.cwd());
+
+  // Get relevant context for this specific task
+  const context = await queryForPrompt(thoughtlayer, task, { topK: 3 });
+
+  // Include in the response generation
+  // (context is empty string if no relevant knowledge)
+  const response = await llm.generate({
+    system: `${AGENT_SYSTEM_PROMPT}\n\n${context}`,
+    user: task,
+  });
+
+  thoughtlayer.close();
+  return response;
+}</code></pre>
+<h2 id="capturing-knowledge">Capturing Knowledge</h2>
+<p>Agents can also capture knowledge during conversations:</p>
+<pre><code class="language-typescript">// After handling a task with new information
+await thoughtlayer.add({
+  domain: 'decisions',
+  title: 'Database Migration Strategy',
+  content: 'Decided to use blue-green deployments for zero-downtime migrations.',
+  importance: 0.8,
+  tags: ['decision', 'database', 'devops'],
+  source_type: 'conversation',
+});</code></pre>
+<p>Or use LLM-powered extraction:</p>
+<pre><code class="language-typescript">// Extract structured knowledge from conversation
+const { entries } = await thoughtlayer.curate(
+  conversationTranscript,
+  { domain: 'meetings' }
+);</code></pre>
+<h2 id="best-practices">Best Practices</h2>
+<ol>
+<li><strong>Query with natural language.</strong> "who handles compliance" works better than "compliance officer name".</li>
+</ol>
+<ol>
+<li><strong>Use domain filters sparingly.</strong> Let the retrieval pipeline rank across all domains unless you're certain.</li>
+</ol>
+<ol>
+<li><strong>Trust the ranking.</strong> Top-3 results are usually sufficient. Don't increase topK unless results are thin.</li>
+</ol>
+<ol>
+<li><strong>Check for empty context.</strong> <code>queryForPrompt</code> returns empty string when nothing relevant is found. Handle gracefully.</li>
+</ol>
+<ol>
+<li><strong>Close when done.</strong> Call <code>thoughtlayer.close()</code> after use to release the SQLite connection.</li>
+</ol>
+<ol>
+<li><strong>Don't query on every message.</strong> Query when handling tasks that need domain knowledge, not on every turn.</li>
+</ol>
+<h2 id="example-openclaw-agent-integration">Example: OpenClaw Agent Integration</h2>
+<pre><code class="language-typescript">// In your agent's task handler
+async function handleUserMessage(message: string) {
+  const thoughtlayer = ThoughtLayer.load('/home/openclaw/clawd');
+
+  // Determine if this message needs knowledge retrieval
+  const needsContext = detectKnowledgeQuery(message); // Your logic
+
+  let context = '';
+  if (needsContext) {
+    context = await queryForPrompt(thoughtlayer, message, { topK: 3 });
+  }
+
+  // Generate response with context
+  const response = await claude.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    system: `${AGENT_SYSTEM_PROMPT}\n\n${context}`,
+    messages: [{ role: 'user', content: message }],
+  });
+
+  thoughtlayer.close();
+  return response;
+}</code></pre>
+<h2 id="performance">Performance</h2>
+<ul>
+<li>Query latency: ~250ms (dominated by embedding API call)</li>
+<li>Without embeddings (FTS only): <5ms</li>
+<li>Memory: ~10MB for 10K entries</li>
+</ul>
+<p>For high-throughput scenarios, consider:</p>
+<ol>
+<li>Reusing the ThoughtLayer instance across requests</li>
+<li>Using <code>thoughtlayer.search()</code> (FTS only, no embedding call)</li>
+<li>Pre-computing embeddings for common queries</li>
+</ol>
+  </main>
+</body>
+</html>

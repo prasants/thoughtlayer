@@ -1,0 +1,85 @@
+{
+  "name": "thoughtlayer",
+  "version": "0.4.1",
+  "description": "Memory infrastructure for AI agents \u2014 local-first, cloud-optional, BYOLLM",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "thoughtlayer": "dist/cli/index.js",
+    "thoughtlayer-mcp": "dist/mcp/server.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/cli/index.ts",
+    "test": "vitest",
+    "benchmark": "tsx benchmarks/run.ts",
+    "benchmark:offline": "tsx benchmarks/run.ts --offline",
+    "benchmark:verbose": "tsx benchmarks/run.ts --verbose",
+    "docs": "tsx scripts/build-docs.ts",
+    "lint": "eslint src/",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.js.map",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "ai",
+    "memory",
+    "agents",
+    "knowledge-graph",
+    "knowledge",
+    "vector-search",
+    "embeddings",
+    "mcp",
+    "model-context-protocol",
+    "rag",
+    "retrieval",
+    "sqlite",
+    "local-first",
+    "openclaw",
+    "langchain",
+    "vercel-ai",
+    "openai-agents"
+  ],
+  "homepage": "https://thoughtlayer.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/prasants/thoughtlayer.git"
+  },
+  "author": "Prasant Sudhakaran",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "better-sqlite3": "^12.6.2",
+    "chalk": "^5.6.2",
+    "commander": "^14.0.3",
+    "ora": "^9.3.0",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.19.15",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./mcp": {
+      "import": "./dist/mcp/server.js",
+      "types": "./dist/mcp/server.d.ts"
+    }
+  }
+}

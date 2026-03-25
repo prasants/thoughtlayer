@@ -1,0 +1,67 @@
+{
+  "timestamp": "2026-03-20T07:40:56.943Z",
+  "mode": "offline",
+  "dataset": {
+    "entries": 50,
+    "queries": 15
+  },
+  "metrics": {
+    "recall": {
+      "@1": 0.5666666666666667,
+      "@3": 0.7333333333333333,
+      "@5": 0.7666666666666667,
+      "@10": 0.7666666666666667
+    },
+    "precision": {
+      "@1": 0.6666666666666666,
+      "@3": 0.28888888888888886,
+      "@5": 0.18666666666666665,
+      "@10": 0.09333333333333332
+    },
+    "mrr": 0.7333333333333333,
+    "latency": {
+      "p50": 18.060003999999935,
+      "p95": 39.012621999999965,
+      "mean": 18.279085266666673
+    }
+  },
+  "failures": [
+    {
+      "queryId": "q-048",
+      "query": "Any concerns about relying on external services?",
+      "expected": [
+        "inc-010",
+        "arch-003"
+      ],
+      "retrieved": [
+        "arch-002",
+        "ppl-001",
+        "arch-007",
+        "arch-009",
+        "prod-001"
+      ]
+    },
+    {
+      "queryId": "q-050",
+      "query": "What is our competitive advantage?",
+      "expected": [
+        "prod-003"
+      ],
+      "retrieved": []
+    },
+    {
+      "queryId": "q-051",
+      "query": "Any issues with AI making mistakes?",
+      "expected": [
+        "inc-003"
+      ],
+      "retrieved": [
+        "ppl-003",
+        "prod-003",
+        "prod-006",
+        "ppl-005",
+        "arch-010"
+      ]
+    }
+  ]
+}

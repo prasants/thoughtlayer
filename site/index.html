@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThoughtLayer: Memory for AI Agents</title>
+  <meta name="description" content="Your AI agent forgets everything between sessions. ThoughtLayer fixes that. Local-first knowledge infrastructure with real retrieval.">
+  <meta property="og:title" content="ThoughtLayer: Memory for AI Agents">
+  <meta property="og:description" content="Your AI agent forgets everything between sessions. ThoughtLayer fixes that.">
+  <meta property="og:url" content="https://thoughtlayer.dev">
+  <meta property="og:image" content="https://thoughtlayer.dev/og.png">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ThoughtLayer: Memory for AI Agents">
+  <meta name="twitter:description" content="Your AI agent forgets everything between sessions. ThoughtLayer fixes that.">
+  <meta name="twitter:image" content="https://thoughtlayer.dev/og.png">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #09090b;
+      --text: #e4e4e7;
+      --text-secondary: #71717a;
+      --text-dim: #52525b;
+      --accent: #a78bfa;
+      --green: #4ade80;
+      --red: #f87171;
+      --amber: #fbbf24;
+      --surface: #18181b;
+      --border: #27272a;
+      --code-bg: #0f0f12;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Inter', -apple-system, system-ui, sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      background-image: radial-gradient(rgba(167, 139, 250, 0.03) 1px, transparent 1px);
+      background-size: 24px 24px;
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      line-height: 1.65;
+      font-size: 16px;
+    }
+
+    ::selection {
+      background: rgba(167, 139, 250, 0.3);
+    }
+
+    .wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* === NAV === */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(9, 9, 11, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.3s;
+    }
+    nav.scrolled { border-bottom-color: var(--border); }
+    nav .wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+    .wordmark {
+      font-weight: 600;
+      font-size: 1.05rem;
+      color: var(--text);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      margin-left: 28px;
+      transition: color 0.15s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .hamburger {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .hamburger span {
+      display: block;
+      width: 18px;
+      height: 2px;
+      background: var(--text-secondary);
+      transition: all 0.2s;
+    }
+    .nav-links a.nav-star {
+      color: var(--accent);
+      border: 1px solid rgba(167, 139, 250, 0.3);
+      padding: 4px 12px;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .nav-links a.nav-star:hover {
+      background: rgba(167, 139, 250, 0.1);
+      border-color: var(--accent);
+    }
+
+    /* === HERO === */
+    .hero {
+      padding: 160px 0 120px;
+      position: relative;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(167, 139, 250, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: -1;
+    }
+    .hero p.above {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+      margin-bottom: 16px;
+    }
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 600;
+      letter-spacing: -0.035em;
+      line-height: 1.1;
+      color: #fafafa;
+      max-width: 600px;
+    }
+    .hero h1 .gradient {
+      background: linear-gradient(135deg, var(--accent) 0%, #c4b5fd 50%, #818cf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero .lede {
+      margin-top: 24px;
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      max-width: 500px;
+      line-height: 1.7;
+      font-weight: 300;
+    }
+
+    .hero-badges {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .badge {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-family: var(--mono);
+      letter-spacing: 0.01em;
+    }
+
+    /* Install */
+    .install-bar {
+      margin-top: 40px;
+      display: inline-flex;
+      align-items: center;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 0.875rem;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+    .install-bar:hover { border-color: var(--text-dim); }
+    .install-bar .prompt {
+      color: var(--text-dim);
+      padding: 10px 0 10px 14px;
+      user-select: none;
+    }
+    .install-bar code {
+      color: var(--text);
+      padding: 10px 4px;
+    }
+    .install-bar button {
+      background: transparent;
+      border: none;
+      border-left: 1px solid var(--border);
+      color: var(--text-dim);
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: all 0.15s;
+    }
+    .install-bar button:hover {
+      color: var(--text);
+      background: rgba(255,255,255,0.03);
+    }
+    .install-bar button.copied { color: var(--green); }
+
+    /* === PROBLEM === */
+    .problem {
+      padding: 0 0 100px;
+    }
+    .problem .contrast {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .problem .side {
+      background: var(--surface);
+      padding: 32px;
+    }
+    .problem .side h3 {
+      font-size: 0.8rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 20px;
+    }
+    .problem .side.before h3 { color: var(--red); }
+    .problem .side.after h3 { color: var(--green); }
+    .problem .side pre {
+      background: transparent;
+      border: none;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      line-height: 1.8;
+      color: var(--text-secondary);
+      white-space: pre-wrap;
+    }
+    .problem .side pre .highlight { color: var(--text); }
+    .problem .side pre .dim { color: var(--text-dim); }
+    .problem .side pre .g { color: var(--green); }
+    .problem .side pre .r { color: var(--red); }
+
+    /* === HOW IT WORKS === */
+    .how {
+      padding: 100px 0;
+      border-top: 1px solid var(--border);
+    }
+    .how h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .how .sub {
+      color: var(--text-secondary);
+      margin-bottom: 48px;
+      font-size: 0.95rem;
+    }
+
+    /* Pipeline: horizontal data flow, Few-style */
+    .flow {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      margin-bottom: 48px;
+    }
+    .flow-step {
+      flex: 1;
+      padding: 20px 16px;
+      border: 1px solid var(--border);
+      border-right: none;
+      position: relative;
+    }
+    .flow-step:first-child { border-radius: 6px 0 0 6px; }
+    .flow-step:last-child { border-right: 1px solid var(--border); border-radius: 0 6px 6px 0; }
+    .flow-step .label {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+    .flow-step .name {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .flow-step .desc {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      line-height: 1.45;
+    }
+    /* Arrow between steps */
+    .flow-step:not(:last-child)::after {
+      content: '→';
+      position: absolute;
+      right: -8px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      z-index: 1;
+      background: var(--bg);
+      padding: 2px 0;
+    }
+
+    /* === COST CHART: Few-style bar chart === */
+    .cost-section {
+      padding: 100px 0;
+      border-top: 1px solid var(--border);
+    }
+    .cost-section h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .cost-section .sub {
+      color: var(--text-secondary);
+      margin-bottom: 48px;
+      font-size: 0.95rem;
+    }
+    .chart {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .chart-row {
+      display: grid;
+      grid-template-columns: 100px 60px 1fr;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.85rem;
+    }
+    .chart-label {
+      color: var(--text-secondary);
+      text-align: right;
+      font-size: 0.8rem;
+    }
+    .chart-value {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--text);
+      text-align: right;
+    }
+    .chart-bar-wrap {
+      height: 24px;
+      position: relative;
+    }
+    .chart-bar {
+      height: 100%;
+      border-radius: 3px;
+      min-width: 2px;
+      transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .chart-bar.thoughtlayer { background: var(--accent); }
+    .chart-bar.competitor { background: var(--text-dim); }
+    .chart-bar.breaks {
+      background: repeating-linear-gradient(
+        90deg,
+        var(--red) 0px,
+        var(--red) 8px,
+        transparent 8px,
+        transparent 12px
+      );
+    }
+    .chart-note {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    /* Axis */
+    .chart-axis {
+      display: grid;
+      grid-template-columns: 100px 60px 1fr;
+      gap: 12px;
+      margin-top: 8px;
+      border-top: 1px solid var(--border);
+      padding-top: 8px;
+    }
+    .chart-axis .ticks {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      font-family: var(--mono);
+    }
+
+    /* === FEATURES: minimal, Few-approved === */
+    .features-section {
+      padding: 100px 0;
+      border-top: 1px solid var(--border);
+    }
+    .features-section h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 48px;
+    }
+    .feat-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .feat-item {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 24px;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+      align-items: baseline;
+    }
+    .feat-item:first-child { border-top: 1px solid var(--border); }
+    .feat-item .feat-name {
+      font-weight: 500;
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+    .feat-item .feat-desc {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+
+    /* === LIVE DEMO === */
+    .demo {
+      padding: 100px 0;
+      border-top: 1px solid var(--border);
+    }
+    .demo h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .demo .sub {
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+      font-size: 0.95rem;
+    }
+    .terminal {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .terminal-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .terminal-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .terminal-dot:nth-child(1) { background: #ef4444; }
+    .terminal-dot:nth-child(2) { background: #eab308; }
+    .terminal-dot:nth-child(3) { background: #22c55e; }
+    .terminal-title {
+      flex: 1;
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      font-family: var(--mono);
+    }
+    .terminal-body {
+      padding: 20px;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      line-height: 1.8;
+      min-height: 280px;
+    }
+    .terminal-body .prompt-line {
+      color: var(--text-dim);
+    }
+    .terminal-body .prompt-line .cmd {
+      color: var(--text);
+    }
+    .terminal-body .output {
+      color: var(--text-secondary);
+      padding-left: 0;
+    }
+    .terminal-body .title { color: var(--accent); font-weight: 500; }
+    .terminal-body .meta { color: var(--text-dim); }
+    .terminal-body .score { color: var(--green); }
+    .terminal-body .blank { height: 1.8em; }
+
+    /* Typing animation */
+    .terminal-body .line {
+      opacity: 0;
+      animation: lineIn 0.02s forwards;
+    }
+    @keyframes lineIn {
+      to { opacity: 1; }
+    }
+    .cursor {
+      display: inline-block;
+      width: 7px;
+      height: 1.1em;
+      background: var(--accent);
+      vertical-align: text-bottom;
+      animation: blink 1s step-end infinite;
+      margin-left: 2px;
+    }
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+
+    /* === INTEGRATIONS === */
+    .integrations .integration-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+    .integration {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 32px;
+      background: var(--surface);
+    }
+    .int-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .int-header h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+    .int-tag {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      background: rgba(255,255,255,0.04);
+      padding: 3px 8px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+    }
+    .int-desc {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+    .int-code pre {
+      margin: 0;
+      font-size: 0.78rem;
+      line-height: 1.7;
+      background: var(--code-bg);
+    }
+    .int-code pre .comment { color: #6b7280; }
+    .int-code pre .keyword { color: var(--accent); }
+    .int-code pre .string { color: var(--green); }
+    .int-code pre .key { color: #93c5fd; }
+    .int-code pre .g { color: var(--green); }
+    .int-detail {
+      margin-top: 16px;
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      line-height: 1.55;
+    }
+    .int-detail code {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      background: rgba(255,255,255,0.04);
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    /* Also style the section generic class */
+    .section {
+      padding: 100px 0;
+      border-top: 1px solid var(--border);
+    }
+    .section h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .section .sub {
+      color: var(--text-secondary);
+      margin-bottom: 48px;
+      font-size: 0.95rem;
+    }
+
+    /* === PRICING === */
+    .pricing {
+      padding: 100px 0;
+      border-top: 1px solid var(--border);
+    }
+    .pricing h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .pricing .sub {
+      color: var(--text-secondary);
+      margin-bottom: 48px;
+      font-size: 0.95rem;
+    }
+    .price-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .price-table th {
+      text-align: left;
+      font-weight: 500;
+      font-size: 0.85rem;
+      padding: 12px 0;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+    }
+    .price-table td {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.875rem;
+      vertical-align: top;
+    }
+    .price-table td:first-child { font-weight: 500; }
+    .price-table td:nth-child(2) {
+      font-family: var(--mono);
+      font-size: 0.85rem;
+    }
+    .price-table td:nth-child(3) {
+      color: var(--text-secondary);
+    }
+    .price-table tr.highlight td {
+      color: var(--text);
+    }
+    .price-table tr.highlight td:first-child {
+      color: var(--accent);
+    }
+
+    /* === FOOTER === */
+    footer {
+      padding: 64px 0 32px;
+      border-top: 1px solid var(--border);
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 48px;
+      margin-bottom: 48px;
+    }
+    .footer-col {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .footer-col-title {
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .footer-col a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: color 0.15s;
+    }
+    .footer-col a:hover { color: var(--text); }
+    .footer-bottom {
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+
+    /* === RESPONSIVE === */
+    @media (max-width: 640px) {
+      .hamburger { display: flex; }
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 56px;
+        left: 0;
+        right: 0;
+        background: rgba(9, 9, 11, 0.95);
+        backdrop-filter: blur(12px);
+        flex-direction: column;
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--border);
+      }
+      .nav-links.open { display: flex; }
+      .nav-links a { margin-left: 0; padding: 8px 0; }
+      .nav-links a.nav-star { display: inline-block; margin-top: 8px; text-align: center; }
+      .hero { padding: 120px 0 80px; }
+      .hero h1 { font-size: 2rem; }
+      .hero-badges { flex-wrap: wrap; }
+      .pricing div[style*="grid-template-columns: repeat(3"] { grid-template-columns: 1fr !important; }
+      .problem .contrast { grid-template-columns: 1fr; }
+      .flow { flex-direction: column; }
+      .flow-step { border-right: 1px solid var(--border); border-bottom: none; }
+      .flow-step:first-child { border-radius: 6px 6px 0 0; }
+      .flow-step:last-child { border-radius: 0 0 6px 6px; border-top: none; }
+      .flow-step:not(:last-child)::after { display: none; }
+      .feat-item { grid-template-columns: 1fr; gap: 4px; }
+      .chart-row { grid-template-columns: 80px 50px 1fr; }
+      .chart-axis { grid-template-columns: 80px 50px 1fr; }
+      .footer-grid { grid-template-columns: 1fr; gap: 32px; }
+    }
+
+    /* Section label above h2 */
+    .section-label {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+    }
+
+    /* === GLOBAL INTERACTIVE POLISH === */
+    .integration {
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .integration:hover {
+      border-color: var(--text-dim);
+      transform: translateY(-2px);
+    }
+    .feat-item {
+      transition: background 0.15s;
+    }
+    .feat-item:hover {
+      background: rgba(255,255,255,0.02);
+    }
+    .flow-step {
+      transition: background 0.15s;
+    }
+    .flow-step:hover {
+      background: rgba(167, 139, 250, 0.04);
+    }
+    .chart-bar {
+      transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s;
+    }
+    .chart-row:hover .chart-bar {
+      opacity: 0.85;
+    }
+
+    /* === SCROLL ANIMATIONS === */
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+<nav id="nav">
+  <div class="wrap">
+    <a href="/" class="wordmark">thoughtlayer</a>
+    <button class="hamburger" onclick="toggleNav()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="nav-links">
+      <a href="https://github.com/prasants/thoughtlayer">GitHub</a>
+      <a href="#how" onclick="closeNav()">How it works</a>
+      <a href="#integrations" onclick="closeNav()">Integrations</a>
+      <a href="#pricing" onclick="closeNav()">Pricing</a>
+      <a href="https://github.com/prasants/thoughtlayer" class="nav-star">☆ Star</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO: One idea. Your agent forgets. We fix that. -->
+<section class="hero">
+  <div class="wrap">
+    <p class="above">npm install thoughtlayer</p>
+    <h1>Your AI agent <span class="gradient">forgets everything</span> between sessions.</h1>
+    <p class="lede">ThoughtLayer is a memory layer that actually retrieves. Seven signals: vector search, keyword matching, knowledge graph, entity resolution, query intent, freshness decay, importance scoring. Local SQLite, no cloud required. Works with any LLM.</p>
+    <div class="install-bar">
+      <span class="prompt">$</span>
+      <code>npm install -g thoughtlayer</code>
+      <button onclick="copy(this)" title="Copy">Copy</button>
+    </div>
+    <div class="hero-badges">
+      <span class="badge">MIT Licensed</span>
+      <span class="badge">Local-first</span>
+      <span class="badge">Zero config</span>
+      <span class="badge">4x embedding compression</span>
+    </div>
+  </div>
+</section>
+
+<!-- PROBLEM: Before/After: show, don't tell -->
+<section class="problem reveal">
+  <div class="wrap">
+    <div class="contrast">
+      <div class="side before">
+        <h3>Without memory</h3>
+        <pre><span class="dim">// Every session starts from zero</span>
+<span class="highlight">context = loadAllFiles()</span>
+<span class="dim">// 847 files × ~200 tokens each</span>
+<span class="r">// = 169,400 tokens per query</span>
+<span class="r">// = $0.42 per question</span>
+<span class="dim">// At 10K files: breaks entirely</span>
+
+<span class="highlight">agent.ask("what database are we using?")</span>
+<span class="r">// Timeout. Context too large.</span></pre>
+      </div>
+      <div class="side after">
+        <h3>With ThoughtLayer</h3>
+        <pre><span class="dim">// Retrieves exactly what's needed</span>
+<span class="highlight">results = thoughtlayer.query("what database are we using?")</span>
+<span class="dim">// Vector + keyword search</span>
+<span class="g">// 3 results × ~100 tokens</span>
+<span class="g">// = 300 tokens per query</span>
+<span class="g">// = $0.0006 per question</span>
+<span class="dim">// Works at 10K, 100K, 1M entries</span>
+
+<span class="g">→ "Postgres with pgvector, chosen for JSON + embeddings"</span>
+<span class="dim">  score: 0.89 (vec:0.72, fts:0.95)</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS: The pipeline, Few-style -->
+<section class="how reveal" id="how">
+  <div class="wrap">
+    <p class="section-label">Architecture</p>
+    <h2>Seven signals. One query.</h2>
+    <p class="sub">Each stage contributes a different signal. The combination outperforms any single approach.</p>
+
+    <div class="flow">
+      <div class="flow-step">
+        <div class="label">Stage 1</div>
+        <div class="name">Vector Search</div>
+        <div class="desc">Semantic similarity via embeddings. Bridges vocabulary gaps. Recommended: Ollama with nomic-embed-text.</div>
+      </div>
+      <div class="flow-step">
+        <div class="label">Stage 2</div>
+        <div class="name">Keyword Search</div>
+        <div class="desc">FTS5 with BM25 ranking. Catches exact terms vectors miss. Works without API keys.</div>
+      </div>
+      <div class="flow-step">
+        <div class="label">Stage 3</div>
+        <div class="name">Knowledge Graph</div>
+        <div class="desc">Auto-extracted relationships. "Sarah leads Platform" becomes a traversable edge. No manual wiring.</div>
+      </div>
+      <div class="flow-step">
+        <div class="label">Stage 4</div>
+        <div class="name">Entity + Intent</div>
+        <div class="desc">Fuzzy name matching, query intent classification, and temporal awareness. No LLM calls.</div>
+      </div>
+      <div class="flow-step">
+        <div class="label">Stage 5</div>
+        <div class="name">Weighted RRF</div>
+        <div class="desc">All signals fused via Reciprocal Rank Fusion with per-signal weights. Top-K with full score breakdown.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COST: Few-style bar chart, data speaks -->
+<section class="cost-section reveal">
+  <div class="wrap">
+    <p class="section-label">Benchmarks</p>
+    <h2>Benchmarked, not claimed</h2>
+    <p class="sub">Public dataset. 50 entries, 10 domains, train/validation split. <a href="https://github.com/prasants/thoughtlayer/tree/main/benchmarks" style="color: var(--green);">Reproduce it yourself.</a></p>
+
+    <div class="chart" id="benchmark-chart">
+      <div class="chart-row">
+        <div class="chart-label">MRR (train)</div>
+        <div class="chart-value">93.7%</div>
+        <div class="chart-bar-wrap">
+          <div class="chart-bar thoughtlayer" style="width: 93.7%"></div>
+        </div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-label">MRR (held-out)</div>
+        <div class="chart-value">83.3%</div>
+        <div class="chart-bar-wrap">
+          <div class="chart-bar thoughtlayer" style="width: 83.3%"></div>
+        </div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-label">Recall@1 (held-out)</div>
+        <div class="chart-value">73.3%</div>
+        <div class="chart-bar-wrap">
+          <div class="chart-bar thoughtlayer" style="width: 73.3%"></div>
+        </div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-label">Recall@3 (held-out)</div>
+        <div class="chart-value">80.0%</div>
+        <div class="chart-bar-wrap">
+          <div class="chart-bar thoughtlayer" style="width: 80.0%"></div>
+        </div>
+      </div>
+    </div>
+    <p class="sub" style="margin-top: 1rem; font-size: 0.85rem; opacity: 0.7;">Production tested on 1,160 entries with 24,824 auto-extracted relationships via Ollama.</p>
+  </div>
+</section>
+
+<section class="cost-section reveal">
+  <div class="wrap">
+    <p class="section-label">Pricing comparison</p>
+    <h2>What memory costs elsewhere</h2>
+    <p class="sub">Verified March 2026. ThoughtLayer runs on your machine; you only pay for embedding API calls.</p>
+
+    <table class="price-table">
+      <thead>
+        <tr>
+          <th>Provider</th>
+          <th>Cost</th>
+          <th>What you get</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="highlight">
+          <td>ThoughtLayer</td>
+          <td style="color: var(--green);">~$0.002/query</td>
+          <td>Unlimited entries. Runs locally. You own the data.</td>
+        </tr>
+        <tr>
+          <td>Mem0 Starter</td>
+          <td>$19/mo</td>
+          <td>50K memories, 5K retrievals/mo, cloud-only</td>
+        </tr>
+        <tr>
+          <td>Mem0 Pro</td>
+          <td>$249/mo</td>
+          <td>Unlimited memories, 50K retrievals/mo</td>
+        </tr>
+        <tr>
+          <td>Zep Flex</td>
+          <td>$475/mo</td>
+          <td>300K credits, cloud-only</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- LIVE DEMO: Animated terminal -->
+<section class="demo reveal">
+  <div class="wrap">
+    <p class="section-label">Demo</p>
+    <h2>Try it</h2>
+    <p class="sub">Three commands. Real results.</p>
+
+    <div class="terminal">
+      <div class="terminal-header">
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <div class="terminal-title">Terminal</div>
+      </div>
+      <div class="terminal-body" id="demo-terminal">
+        <!-- Filled by JS -->
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES: Simple list, no icons, no cards -->
+<section class="features-section reveal">
+  <div class="wrap">
+    <p class="section-label">Features</p>
+    <h2>What you get</h2>
+
+    <div class="feat-list">
+      <div class="feat-item">
+        <div class="feat-name">Local-first storage</div>
+        <div class="feat-desc">SQLite + Markdown files. No external database. Everything works offline, syncs with git, is human-readable.</div>
+      </div>
+      <div class="feat-item">
+        <div class="feat-name">MCP server</div>
+        <div class="feat-desc">Works with Claude Desktop, Cursor, Windsurf, and any Model Context Protocol client. Six tools, zero configuration.</div>
+      </div>
+      <div class="feat-item">
+        <div class="feat-name">BYOLLM</div>
+        <div class="feat-desc">Bring your own LLM for knowledge extraction. OpenAI, Anthropic, OpenRouter, local models via Ollama. We never lock you in.</div>
+      </div>
+      <div class="feat-item">
+        <div class="feat-name">Auto-curate</div>
+        <div class="feat-desc">Feed in conversations, meeting notes, or code reviews. The LLM extracts and structures knowledge automatically. Memory that compounds.</div>
+      </div>
+      <div class="feat-item">
+        <div class="feat-name">Freshness decay</div>
+        <div class="feat-desc">Recent knowledge ranks higher by default. Old knowledge fades gracefully, never disappears. Configurable half-life.</div>
+      <div class="feat-item">
+        <div class="feat-name">Embedding compression</div>
+        <div class="feat-desc">Int8 scalar quantisation compresses embeddings ~4x with negligible recall impact. Run <code style="font-family: var(--mono); font-size: 0.85em; background: rgba(255,255,255,0.04); padding: 1px 5px; border-radius: 3px;">thoughtlayer compress</code> on existing projects. Reversible. Benchmark before and after.</div>
+      </div>
+      </div>
+      <div class="feat-item">
+        <div class="feat-name">TypeScript SDK</div>
+        <div class="feat-desc">Full programmatic API. init, add, curate, query, search, list, health. Everything the CLI does, your code can do.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INTEGRATIONS: How it connects -->
+<section class="section integrations reveal" id="integrations">
+  <div class="wrap">
+    <p class="section-label">Integrations</p>
+    <h2>Works where you work</h2>
+    <p class="sub">Three integration paths. Pick the one that fits your stack.</p>
+
+    <div class="integration-grid">
+      <div class="integration">
+        <div class="int-header">
+          <h3>OpenClaw</h3>
+          <span class="int-tag">Agent framework</span>
+        </div>
+        <p class="int-desc">Persistent memory across agent sessions. Agents query ThoughtLayer for context before handling tasks, and auto-curate knowledge from conversations. Memory survives compaction, restarts, and session boundaries.</p>
+        <div class="int-code">
+          <pre><span class="comment"># In your agent's workspace</span>
+thoughtlayer init
+thoughtlayer add --domain decisions \
+  --title "Database Choice" \
+  "Team decided on Postgres with pgvector \
+for the v2 rewrite. No more MongoDB."
+
+<span class="comment"># Agent queries before responding</span>
+thoughtlayer query "what database are we using"
+<span class="g">→ Database Choice (score: 0.91)</span></pre>
+        </div>
+        <p class="int-detail">Drop <code>bin/thoughtlayer-query</code> into your agent workspace. Agents call it when they need context for a task, not on every turn. Saves tokens, returns only what's relevant.</p>
+      </div>
+
+      <div class="integration">
+        <div class="int-header">
+          <h3>MCP Server</h3>
+          <span class="int-tag">Claude Desktop · Cursor · Windsurf</span>
+        </div>
+        <p class="int-desc">Six tools exposed via the Model Context Protocol. Claude and Cursor can query, add, and curate knowledge directly. Your AI assistant remembers everything you've told it across sessions.</p>
+        <div class="int-code">
+          <pre><span class="comment">// claude_desktop_config.json</span>
+{
+  "<span class="key">mcpServers</span>": {
+    "<span class="key">thoughtlayer</span>": {
+      "<span class="key">command</span>": "<span class="string">thoughtlayer-mcp</span>",
+      "<span class="key">env</span>": {
+        "<span class="key">THOUGHTLAYER_PROJECT_ROOT</span>": "<span class="string">/path/to/project</span>",
+        "<span class="key">OPENAI_API_KEY</span>": "<span class="string">sk-...</span>"
+      }
+    }
+  }
+}</pre>
+        </div>
+        <p class="int-detail">Tools: <code>thoughtlayer_query</code>, <code>thoughtlayer_add</code>, <code>thoughtlayer_curate</code>, <code>thoughtlayer_search</code>, <code>thoughtlayer_list</code>, <code>thoughtlayer_health</code>. Resources expose all entries as browsable <code>thoughtlayer://</code> URIs.</p>
+      </div>
+
+      <div class="integration">
+        <div class="int-header">
+          <h3>TypeScript SDK</h3>
+          <span class="int-tag">Any Node.js agent</span>
+        </div>
+        <p class="int-desc">Programmatic API for custom agent frameworks. LangChain, AutoGen, CrewAI, or your own. Import, initialise, query.</p>
+        <div class="int-code">
+          <pre><span class="keyword">import</span> { ThoughtLayer } <span class="keyword">from</span> <span class="string">'thoughtlayer'</span>;
+
+<span class="keyword">const</span> memory = ThoughtLayer.load(<span class="string">'.'</span>);
+
+<span class="comment">// Retrieve context for a task</span>
+<span class="keyword">const</span> results = <span class="keyword">await</span> memory.query(
+  <span class="string">"current infrastructure setup"</span>
+);
+
+<span class="comment">// Auto-curate from conversation</span>
+<span class="keyword">await</span> memory.curate(
+  <span class="string">"Team decided we're using Postgres \
+for the new API backend."</span>
+);</pre>
+        </div>
+        <p class="int-detail">Also works as a CLI: <code>thoughtlayer query</code>, <code>thoughtlayer add</code>, <code>thoughtlayer curate</code>. Same engine, different interface.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="pricing reveal" id="pricing">
+  <div class="wrap">
+    <p class="section-label">Pricing</p>
+    <h2>Open core. MIT licensed.</h2>
+    <p class="sub">The engine is free forever. Cloud adds team features and hosted infrastructure.</p>
+
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 2.5rem;">
+
+      <!-- Free -->
+      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2rem;">
+        <div style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 0.5rem;">Open Source</div>
+        <div style="font-size: 2rem; font-weight: 600;">$0</div>
+        <div style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">forever</div>
+        <ul style="list-style: none; font-size: 0.9rem; line-height: 2;">
+          <li>✓ Full CLI + SDK</li>
+          <li>✓ MCP server</li>
+          <li>✓ Unlimited local entries</li>
+          <li>✓ All retrieval features</li>
+          <li>✓ BYOLLM</li>
+          <li>✓ MIT licensed</li>
+        </ul>
+        <a href="https://github.com/prasants/thoughtlayer" style="display: block; text-align: center; margin-top: 1.5rem; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; color: var(--text); text-decoration: none; font-size: 0.9rem;">Get Started</a>
+        <a href="/docs/" style="display: block; text-align: center; margin-top: 0.5rem; padding: 0.75rem; color: var(--text-secondary); text-decoration: none; font-size: 0.9rem;">Read the docs →</a>
+      </div>
+
+      <!-- Pro -->
+      <div style="background: var(--surface); border: 2px solid var(--accent); border-radius: 12px; padding: 2rem; position: relative;">
+        <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #000; font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.75rem; border-radius: 4px;">COMING SOON</div>
+        <div style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); margin-bottom: 0.5rem;">Pro</div>
+        <div style="font-size: 2rem; font-weight: 600;">$19<span style="font-size: 1rem; color: var(--text-secondary);">/mo</span></div>
+        <div style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">for individuals</div>
+        <ul style="list-style: none; font-size: 0.9rem; line-height: 2;">
+          <li>✓ Everything in Free</li>
+          <li>✓ Cloud sync across devices</li>
+          <li>✓ Hosted embeddings (no API key needed)</li>
+          <li>✓ Web dashboard</li>
+          <li>✓ Usage analytics</li>
+          <li>✓ Priority support</li>
+        </ul>
+        <button onclick="subscribe('pro')" style="display: block; width: 100%; margin-top: 1.5rem; padding: 0.75rem; background: var(--accent); color: #000; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer;">Join Waitlist</button>
+      </div>
+
+      <!-- Team -->
+      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; position: relative;">
+        <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--text-dim); color: #000; font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.75rem; border-radius: 4px;">COMING SOON</div>
+        <div style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 0.5rem;">Team</div>
+        <div style="font-size: 2rem; font-weight: 600;">$49<span style="font-size: 1rem; color: var(--text-secondary);">/mo</span></div>
+        <div style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">per seat</div>
+        <ul style="list-style: none; font-size: 0.9rem; line-height: 2;">
+          <li>✓ Everything in Pro</li>
+          <li>✓ Shared team knowledge bases</li>
+          <li>✓ Role-based access control</li>
+          <li>✓ Audit log</li>
+          <li>✓ SSO (SAML/OIDC)</li>
+          <li>✓ SLA + dedicated support</li>
+        </ul>
+        <button onclick="subscribe('team')" style="display: block; width: 100%; margin-top: 1.5rem; padding: 0.75rem; background: transparent; color: var(--text); border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; cursor: pointer;">Join Waitlist</button>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="/" class="wordmark" style="font-size: 1rem;">thoughtlayer</a>
+        <p style="color: var(--text-dim); font-size: 0.8rem; margin-top: 8px; line-height: 1.5;">Memory infrastructure for AI agents.<br>Local-first. Open source. MIT licensed.</p>
+      </div>
+      <div class="footer-col">
+        <div class="footer-col-title">Product</div>
+        <a href="#how">How it works</a>
+        <a href="#integrations">Integrations</a>
+        <a href="#pricing">Pricing</a>
+        <a href="/docs/">Documentation</a>
+      </div>
+      <div class="footer-col">
+        <div class="footer-col-title">Community</div>
+        <a href="https://github.com/prasants/thoughtlayer">GitHub</a>
+        <a href="https://www.npmjs.com/package/thoughtlayer">npm</a>
+        <a href="https://github.com/prasants/thoughtlayer/issues">Issues</a>
+        <a href="https://github.com/prasants/thoughtlayer/discussions">Discussions</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 ThoughtLayer</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Mobile nav
+function toggleNav() {
+  document.querySelector('.nav-links').classList.toggle('open');
+}
+function closeNav() {
+  document.querySelector('.nav-links').classList.remove('open');
+}
+
+// Nav scroll
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => {
+  nav.classList.toggle('scrolled', window.scrollY > 10);
+}, { passive: true });
+
+// Copy button
+function copy(btn) {
+  navigator.clipboard.writeText('npm install -g thoughtlayer');
+  btn.textContent = 'Copied';
+  btn.classList.add('copied');
+  setTimeout(() => {
+    btn.textContent = 'Copy';
+    btn.classList.remove('copied');
+  }, 2000);
+}
+
+// Reveal on scroll
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.15 });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// Terminal animation
+const lines = [
+  { type: 'prompt', text: '$ thoughtlayer init' },
+  { type: 'output', text: '✓ Initialised .thoughtlayer/ in current directory' },
+  { type: 'blank' },
+  { type: 'prompt', text: '$ thoughtlayer add --domain decisions --title "Database Choice" "Using Postgres with pgvector. Chosen over MongoDB for JSON support and mature ecosystem."' },
+  { type: 'output', text: '✓ Added: Database Choice (decisions)' },
+  { type: 'blank' },
+  { type: 'prompt', text: '$ thoughtlayer query "what database are we using"' },
+  { type: 'blank' },
+  { type: 'output', html: '  <span class="title">Database Choice</span>' },
+  { type: 'output', html: '  <span class="meta">Domain: decisions</span>  <span class="score">Score: 0.89</span>  <span class="meta">(vec:0.72, fts:0.95, fresh:1.0)</span>' },
+  { type: 'output', text: '  Using Postgres with pgvector. Chosen over MongoDB for JSON support and mature ecosystem.' },
+];
+
+function animateTerminal() {
+  const terminal = document.getElementById('demo-terminal');
+  terminal.innerHTML = '';
+  let delay = 0;
+
+  lines.forEach((line, i) => {
+    const div = document.createElement('div');
+    div.classList.add('line');
+    div.style.animationDelay = delay + 'ms';
+
+    if (line.type === 'blank') {
+      div.classList.add('blank');
+    } else if (line.type === 'prompt') {
+      div.classList.add('prompt-line');
+      div.innerHTML = `<span class="cmd">${line.text}</span>`;
+      delay += 600;
+    } else {
+      div.classList.add('output');
+      if (line.html) {
+        div.innerHTML = line.html;
+      } else {
+        div.textContent = line.text;
+      }
+      delay += 80;
+    }
+
+    terminal.appendChild(div);
+    delay += 80;
+  });
+
+  // Add blinking cursor after last line
+  const cursorEl = document.createElement('span');
+  cursorEl.className = 'cursor';
+  const lastLine = terminal.lastElementChild;
+  if (lastLine) {
+    lastLine.style.animationDelay = delay + 'ms';
+    setTimeout(() => lastLine.appendChild(cursorEl), delay);
+  }
+}
+
+// Run terminal animation when section is visible
+const demoObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      setTimeout(animateTerminal, 300);
+      demoObserver.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.3 });
+
+// Animate benchmark bars on scroll
+const chartObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.querySelectorAll('.chart-bar').forEach(bar => {
+        const target = bar.dataset.width || bar.style.width;
+        bar.style.width = '0%';
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            bar.style.width = target;
+          });
+        });
+      });
+      chartObserver.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.3 });
+
+const benchmarkChart = document.getElementById('benchmark-chart');
+if (benchmarkChart) {
+  benchmarkChart.querySelectorAll('.chart-bar').forEach(bar => {
+    bar.dataset.width = bar.style.width;
+    bar.style.width = '0%';
+  });
+  chartObserver.observe(benchmarkChart);
+}
+
+const demoSection = document.querySelector('.demo');
+if (demoSection) demoObserver.observe(demoSection);
+
+// Waitlist subscribe
+function subscribe(plan) {
+  const btn = event.target;
+  btn.textContent = 'Added ✓';
+  btn.style.opacity = '0.7';
+  btn.disabled = true;
+  setTimeout(() => {
+    btn.textContent = 'On the list';
+  }, 1500);
+}
+</script>
+
+</body>
+</html>

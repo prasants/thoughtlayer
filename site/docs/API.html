@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Reference: ThoughtLayer Docs</title>
+  <meta name="description" content="ThoughtLayer documentation: API Reference">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #09090b;
+      --text: #e4e4e7;
+      --text-secondary: #71717a;
+      --text-dim: #52525b;
+      --accent: #a78bfa;
+      --green: #4ade80;
+      --surface: #18181b;
+      --border: #27272a;
+      --code-bg: #0f0f12;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Inter', -apple-system, system-ui, sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 2rem 1.5rem;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      overflow-y: auto;
+    }
+
+    .sidebar .logo {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-decoration: none;
+      display: block;
+      margin-bottom: 2rem;
+    }
+
+    .sidebar nav {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .sidebar nav a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      transition: all 0.15s;
+    }
+
+    .sidebar nav a:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .sidebar nav a.active {
+      color: var(--accent);
+      background: rgba(167, 139, 250, 0.1);
+    }
+
+    .sidebar .back-link {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .sidebar .back-link a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.85rem;
+    }
+
+    .sidebar .back-link a:hover { color: var(--text-secondary); }
+
+    /* Main content */
+    .main {
+      margin-left: 260px;
+      padding: 3rem 4rem;
+      max-width: 900px;
+      width: 100%;
+    }
+
+    /* Typography */
+    h1 { font-size: 2rem; font-weight: 600; margin-bottom: 1.5rem; color: var(--text); }
+    h2 { font-size: 1.4rem; font-weight: 600; margin: 2.5rem 0 1rem; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+    h3 { font-size: 1.15rem; font-weight: 600; margin: 2rem 0 0.75rem; color: var(--text); }
+    h4 { font-size: 1rem; font-weight: 600; margin: 1.5rem 0 0.5rem; color: var(--text-secondary); }
+
+    p { margin-bottom: 1rem; color: var(--text-secondary); }
+    strong { color: var(--text); font-weight: 500; }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { margin: 0 0 1rem 1.5rem; color: var(--text-secondary); }
+    li { margin-bottom: 0.4rem; }
+
+    hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+    /* Code */
+    code {
+      font-family: var(--mono);
+      font-size: 0.85em;
+      background: var(--code-bg);
+      padding: 0.2em 0.4em;
+      border-radius: 4px;
+      color: var(--accent);
+    }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      overflow-x: auto;
+      margin: 1rem 0 1.5rem;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+
+    /* Tables */
+    .table-wrapper {
+      overflow-x: auto;
+      margin: 1rem 0 1.5rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      padding: 0.6rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      color: var(--text);
+      font-weight: 500;
+      background: var(--surface);
+    }
+
+    td { color: var(--text-secondary); }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .sidebar {
+        position: static;
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        padding: 1rem;
+      }
+
+      .sidebar nav { flex-direction: row; flex-wrap: wrap; gap: 0.25rem; }
+
+      .main {
+        margin-left: 0;
+        padding: 2rem 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <a href="/" class="logo">⚡ ThoughtLayer</a>
+    <nav>
+            <a href="/docs/getting-started.html">Getting Started</a>
+            <a href="/docs/API.html" class="active">API Reference</a>
+            <a href="/docs/ARCHITECTURE.html">Architecture</a>
+            <a href="/docs/MCP.html">MCP Server</a>
+            <a href="/docs/AGENT_INTEGRATION.html">Agent Integration</a>
+    </nav>
+    <div class="back-link">
+      <a href="/">← Back to home</a><br>
+      <a href="https://github.com/prasants/thoughtlayer">GitHub</a> ·
+      <a href="https://www.npmjs.com/package/thoughtlayer">npm</a>
+    </div>
+  </aside>
+  <main class="main">
+    <h1 id="thoughtlayer-api-reference">ThoughtLayer API Reference</h1>
+<h2 id="thoughtlayer-class">ThoughtLayer Class</h2>
+<p>The main entry point. Wires storage, retrieval, and ingestion together.</p>
+<h3 id="constructor">Constructor</h3>
+<pre><code class="language-typescript">new ThoughtLayer(config: ThoughtLayerConfig)</code></pre>
+<h4 id="thoughtlayerconfig">ThoughtLayerConfig</h4>
+<div class="table-wrapper"><table>
+<thead><tr>
+<th>Property</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr></thead><tbody>
+<tr>
+<td><code>projectRoot</code></td>
+<td><code>string</code></td>
+<td>Yes</td>
+<td>Path to project directory</td>
+</tr>
+<tr>
+<td><code>embedding</code></td>
+<td><code>object</code></td>
+<td>No</td>
+<td>Embedding provider config</td>
+</tr>
+<tr>
+<td><code>embedding.provider</code></td>
+<td><code>string</code></td>
+<td>Yes</td>
+<td><code>'openai'</code> \</td>
+<td><code>'ollama'</code></td>
+</tr>
+<tr>
+<td><code>embedding.apiKey</code></td>
+<td><code>string</code></td>
+<td>No</td>
+<td>API key (env var fallback)</td>
+</tr>
+<tr>
+<td><code>embedding.model</code></td>
+<td><code>string</code></td>
+<td>No</td>
+<td>Model name override</td>
+</tr>
+<tr>
+<td><code>embedding.baseUrl</code></td>
+<td><code>string</code></td>
+<td>No</td>
+<td>Custom endpoint</td>
+</tr>
+<tr>
+<td><code>curate</code></td>
+<td><code>object</code></td>
+<td>No</td>
+<td>LLM provider for curate</td>
+</tr>
+<tr>
+<td><code>curate.provider</code></td>
+<td><code>string</code></td>
+<td>Yes</td>
+<td><code>'anthropic'</code> \</td>
+<td><code>'openai'</code> \</td>
+<td><code>'openrouter'</code></td>
+</tr>
+<tr>
+<td><code>curate.apiKey</code></td>
+<td><code>string</code></td>
+<td>Yes</td>
+<td>API key</td>
+</tr>
+<tr>
+<td><code>curate.model</code></td>
+<td><code>string</code></td>
+<td>No</td>
+<td>Model name override</td>
+</tr>
+</tbody></table></div>
+<h3 id="static-methods">Static Methods</h3>
+<h4 id="thoughtlayer-init-projectroot-config"><code>ThoughtLayer.init(projectRoot, config?)</code></h4>
+<p>Initialise a new ThoughtLayer project. Creates <code>.thoughtlayer/</code> directory and config.</p>
+<pre><code class="language-typescript">const memory = ThoughtLayer.init('./my-project', {
+  embedding: { provider: 'openai', apiKey: 'sk-...' },
+});</code></pre>
+<p><strong>Returns:</strong> <code>ThoughtLayer</code></p>
+<h4 id="thoughtlayer-load-projectroot"><code>ThoughtLayer.load(projectRoot)</code></h4>
+<p>Load an existing project from disk.</p>
+<pre><code class="language-typescript">const memory = ThoughtLayer.load('./my-project');</code></pre>
+<p><strong>Returns:</strong> <code>ThoughtLayer</code>  </p>
+<p><strong>Throws:</strong> If no <code>.thoughtlayer/config.json</code> found.</p>
+<h4 id="thoughtlayer-loadwithautodetect-projectroot"><code>ThoughtLayer.loadWithAutoDetect(projectRoot)</code></h4>
+<p>Load with automatic embedding provider detection. Tries Ollama first, falls back to OpenAI.</p>
+<pre><code class="language-typescript">const memory = await ThoughtLayer.loadWithAutoDetect('./my-project');</code></pre>
+<p><strong>Returns:</strong> <code>Promise<ThoughtLayer></code></p>
+<h3 id="instance-methods">Instance Methods</h3>
+<h4 id="add-input-createentryinput-promise-knowledgeentry"><code>add(input: CreateEntryInput): Promise<KnowledgeEntry></code></h4>
+<p>Add a knowledge entry. Auto-chunks large documents when embeddings are configured.</p>
+<pre><code class="language-typescript">const entry = await memory.add({
+  domain: 'architecture',
+  title: 'Database Choice',
+  content: 'Using PostgreSQL with pgvector.',
+  importance: 0.8,
+  tags: ['database'],
+});</code></pre>
+<h4 id="query-query-string-options-partial-retrievaloptions-promise-retrievalresult"><code>query(query: string, options?: Partial<RetrievalOptions>): Promise<RetrievalResult[]></code></h4>
+<p>Semantic search using the full retrieval pipeline.</p>
+<pre><code class="language-typescript">const results = await memory.query('what database do we use?', {
+  topK: 5,
+  domain: 'architecture',
+  weights: { rrf: 0.75, freshness: 0.05, importance: 0.20 },
+});</code></pre>
+<h4 id="search-query-string-limit-number-promise-retrievalresult"><code>search(query: string, limit?: number): Promise<RetrievalResult[]></code></h4>
+<p>Full retrieval pipeline without requiring embeddings.</p>
+<h4 id="searchraw-query-string-limit-number-knowledgeentry"><code>searchRaw(query: string, limit?: number): KnowledgeEntry[]</code></h4>
+<p>Raw FTS5/BM25 search. For debugging.</p>
+<h4 id="curate-text-string-options-domain-string-promise-entries-knowledgeentry-result-curateresult"><code>curate(text: string, options?: { domain?: string }): Promise<{ entries: KnowledgeEntry[], result: CurateResult }></code></h4>
+<p>LLM-powered knowledge extraction. Requires a curate provider.</p>
+<pre><code class="language-typescript">const { entries } = await memory.curate(
+  'We switched from REST to GraphQL for mobile.'
+);</code></pre>
+<h4 id="list-options-searchoptions-knowledgeentry"><code>list(options?: SearchOptions): KnowledgeEntry[]</code></h4>
+<p>List entries with filters.</p>
+<pre><code class="language-typescript">const entries = memory.list({ domain: 'architecture', limit: 10 });</code></pre>
+<h4 id="get-id-string-knowledgeentry-undefined"><code>get(id: string): KnowledgeEntry | undefined</code></h4>
+<p>Get a single entry by ID.</p>
+<h4 id="update-id-string-updates-partial-createentryinput-promise-knowledgeentry-undefined"><code>update(id: string, updates: Partial<CreateEntryInput>): Promise<KnowledgeEntry | undefined></code></h4>
+<p>Update an entry. Re-embeds if title or content changed.</p>
+<h4 id="archive-id-string-boolean"><code>archive(id: string): boolean</code></h4>
+<p>Soft-delete an entry.</p>
+<h4 id="health-healthmetrics"><code>health(): HealthMetrics</code></h4>
+<p>Knowledge base health metrics.</p>
+<pre><code class="language-typescript">const h = memory.health();
+// { total: 42, active: 40, stale: 2, domains: { api: 5, auth: 8 } }</code></pre>
+<h4 id="count-number"><code>count(): number</code></h4>
+<p>Total entry count.</p>
+<h4 id="rebuild-options-promise-enriched-number-embedded-number-total-number"><code>rebuild(options?): Promise<{ enriched: number, embedded: number, total: number }></code></h4>
+<p>Re-run enrichment and regenerate embeddings for all entries.</p>
+<h4 id="embedall-promise-number"><code>embedAll(): Promise<number></code></h4>
+<p>Embed all entries that don't have embeddings yet.</p>
+<h4 id="hasembeddings-boolean"><code>hasEmbeddings(): boolean</code></h4>
+<p>Check if an embedding provider is configured.</p>
+<h4 id="embeddinginfo-model-string-dimensions-number-null"><code>embeddingInfo(): { model: string, dimensions: number } | null</code></h4>
+<p>Get embedding provider info.</p>
+<h4 id="close-void"><code>close(): void</code></h4>
+<p>Close the database connection.</p>
+<hr>
+<h2 id="types">Types</h2>
+<h3 id="knowledgeentry">KnowledgeEntry</h3>
+<pre><code class="language-typescript">interface KnowledgeEntry {
+  id: string;
+  project_id: string;
+  version: number;
+  domain: string;
+  topic: string | null;
+  subtopic: string | null;
+  title: string;
+  content: string;
+  content_hash: string;
+  summary: string | null;
+  facts: string[];
+  tags: string[];
+  keywords: string[];
+  relations: Relation[];
+  source_type: string;
+  source_ref: string | null;
+  importance: number;      // 0.0–1.0
+  confidence: number;      // 0.0–1.0
+  freshness_at: string;
+  access_count: number;
+}</code></pre>
+<h3 id="createentryinput">CreateEntryInput</h3>
+<pre><code class="language-typescript">interface CreateEntryInput {
+  domain: string;
+  topic?: string;
+  subtopic?: string;
+  title: string;
+  content: string;
+  summary?: string;
+  facts?: string[];
+  tags?: string[];
+  keywords?: string[];
+  relations?: Relation[];
+  source_type?: string;
+  source_ref?: string;
+  importance?: number;     // default: 0.5
+  confidence?: number;     // default: 0.5
+}</code></pre>
+<h3 id="retrievalresult">RetrievalResult</h3>
+<pre><code class="language-typescript">interface RetrievalResult {
+  entry: KnowledgeEntry;
+  score: number;
+  sources: {
+    vector?: number;
+    fts?: number;
+    freshness?: number;
+    importance?: number;
+  };
+}</code></pre>
+<h3 id="retrievaloptions">RetrievalOptions</h3>
+<pre><code class="language-typescript">interface RetrievalOptions {
+  query: string;
+  queryEmbedding?: Float32Array;
+  domain?: string;
+  tags?: string[];
+  topK?: number;                    // default: 5
+  freshnessHalfLifeDays?: number;   // default: 30
+  weights?: {
+    rrf?: number;          // default: 0.75
+    freshness?: number;    // default: 0.05
+    importance?: number;   // default: 0.20
+  };
+}</code></pre>
+<h3 id="searchoptions">SearchOptions</h3>
+<pre><code class="language-typescript">interface SearchOptions {
+  domain?: string;
+  topic?: string;
+  tags?: string[];
+  status?: string;
+  minImportance?: number;
+  limit?: number;
+  offset?: number;
+}</code></pre>
+<hr>
+<h2 id="integration-apis">Integration APIs</h2>
+<h3 id="langchain-thoughtlayermemory">LangChain: ThoughtLayerMemory</h3>
+<pre><code class="language-typescript">import { ThoughtLayerMemory } from 'thoughtlayer';
+
+new ThoughtLayerMemory(config: ThoughtLayerMemoryConfig)</code></pre>
+<div class="table-wrapper"><table>
+<thead><tr>
+<th>Property</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr></thead><tbody>
+<tr>
+<td><code>thoughtlayer</code></td>
+<td><code>ThoughtLayer</code></td>
+<td>required</td>
+<td>ThoughtLayer instance</td>
+</tr>
+<tr>
+<td><code>memoryKey</code></td>
+<td><code>string</code></td>
+<td><code>'history'</code></td>
+<td>Output key for memory variables</td>
+</tr>
+<tr>
+<td><code>inputKey</code></td>
+<td><code>string</code></td>
+<td><code>'input'</code></td>
+<td>Key for human input</td>
+</tr>
+<tr>
+<td><code>outputKey</code></td>
+<td><code>string</code></td>
+<td><code>'output'</code></td>
+<td>Key for AI output</td>
+</tr>
+<tr>
+<td><code>domain</code></td>
+<td><code>string</code></td>
+<td><code>'conversation'</code></td>
+<td>Storage domain</td>
+</tr>
+<tr>
+<td><code>topK</code></td>
+<td><code>number</code></td>
+<td><code>5</code></td>
+<td>Max results per query</td>
+</tr>
+<tr>
+<td><code>returnMessages</code></td>
+<td><code>boolean</code></td>
+<td><code>false</code></td>
+<td>Return raw RetrievalResult[]</td>
+</tr>
+<tr>
+<td><code>sessionId</code></td>
+<td><code>string</code></td>
+<td><code>'default'</code></td>
+<td>Session scope</td>
+</tr>
+</tbody></table></div>
+<p><strong>Methods:</strong></p>
+<ul>
+<li><code>loadMemoryVariables(input)</code>: Retrieve relevant context</li>
+<li><code>saveContext(input, output)</code>: Store a conversation turn</li>
+<li><code>clear()</code>: Archive all entries for this session</li>
+</ul>
+<h3 id="vercel-ai-thoughtlayerprovider">Vercel AI: ThoughtLayerProvider</h3>
+<pre><code class="language-typescript">import { ThoughtLayerProvider } from 'thoughtlayer';
+
+new ThoughtLayerProvider(config: ThoughtLayerProviderConfig)</code></pre>
+<div class="table-wrapper"><table>
+<thead><tr>
+<th>Property</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr></thead><tbody>
+<tr>
+<td><code>thoughtlayer</code></td>
+<td><code>ThoughtLayer</code></td>
+<td>required</td>
+<td>ThoughtLayer instance</td>
+</tr>
+<tr>
+<td><code>domain</code></td>
+<td><code>string</code></td>
+<td><code>'chat'</code></td>
+<td>Storage domain</td>
+</tr>
+<tr>
+<td><code>topK</code></td>
+<td><code>number</code></td>
+<td><code>5</code></td>
+<td>Max results</td>
+</tr>
+<tr>
+<td><code>chatId</code></td>
+<td><code>string</code></td>
+<td><code>'default'</code></td>
+<td>Chat/thread scope</td>
+</tr>
+<tr>
+<td><code>maxChunkSize</code></td>
+<td><code>number</code></td>
+<td><code>2000</code></td>
+<td>Max chars per chunk</td>
+</tr>
+</tbody></table></div>
+<p><strong>Methods:</strong></p>
+<ul>
+<li><code>getContext(userMessage)</code>: Retrieve relevant context string</li>
+<li><code>saveTurn(userMessage, assistantResponse)</code>: Store a turn</li>
+<li><code>saveMessages(messages)</code>: Batch save</li>
+<li><code>getHistory(limit?)</code>: Get conversation history</li>
+</ul>
+<h3 id="openai-agents-createthoughtlayertools">OpenAI Agents: createThoughtLayerTools</h3>
+<pre><code class="language-typescript">import { createThoughtLayerTools } from 'thoughtlayer';
+
+const tools = createThoughtLayerTools(thoughtlayer | config);</code></pre>
+<p><strong>Returns:</strong> <code>{ definitions: ToolDefinition[], execute: (name, args) => Promise<string> }</code></p>
+<p><strong>Tools provided:</strong></p>
+<ul>
+<li><code>remember</code>: Store information (params: content, title?, importance?, tags?)</li>
+<li><code>recall</code>: Search memory (params: query, top_k?)</li>
+<li><code>update</code>: Update a fact with versioning (params: topic, new_fact, title?)</li>
+</ul>
+<h3 id="crewai-thoughtlayercrewmemory">CrewAI: ThoughtLayerCrewMemory</h3>
+<pre><code class="language-typescript">import { ThoughtLayerCrewMemory } from 'thoughtlayer';
+
+const crew = new ThoughtLayerCrewMemory(config: CrewMemoryConfig);</code></pre>
+<div class="table-wrapper"><table>
+<thead><tr>
+<th>Property</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr></thead><tbody>
+<tr>
+<td><code>thoughtlayer</code></td>
+<td><code>ThoughtLayer</code></td>
+<td>required</td>
+<td>ThoughtLayer instance</td>
+</tr>
+<tr>
+<td><code>crewId</code></td>
+<td><code>string</code></td>
+<td>required</td>
+<td>Unique crew identifier</td>
+</tr>
+<tr>
+<td><code>topK</code></td>
+<td><code>number</code></td>
+<td><code>5</code></td>
+<td>Default results per search</td>
+</tr>
+</tbody></table></div>
+<p><strong>Methods:</strong></p>
+<ul>
+<li><code>forAgent(agentId)</code>: Get agent-scoped <code>AgentMemory</code></li>
+<li><code>saveShared(content, options?)</code>: Save to shared crew memory</li>
+<li><code>searchShared(query, topK?)</code>: Search all crew memory</li>
+<li><code>listShared(limit?)</code>: List shared entries</li>
+<li><code>health()</code>: Knowledge base health</li>
+</ul>
+<p><strong>AgentMemory methods:</strong></p>
+<ul>
+<li><code>save(content, options?)</code>: Save agent-scoped memory</li>
+<li><code>search(query, topK?)</code>: Search agent's memories</li>
+<li><code>list(limit?)</code>: List agent's entries</li>
+</ul>
+<hr>
+<h2 id="cli-commands">CLI Commands</h2>
+<div class="table-wrapper"><table>
+<thead><tr>
+<th>Command</th>
+<th>Description</th>
+</tr></thead><tbody>
+<tr>
+<td><code>thoughtlayer init [options]</code></td>
+<td>Initialise project</td>
+</tr>
+<tr>
+<td><code>thoughtlayer ingest <dir> [--watch]</code></td>
+<td>Ingest files</td>
+</tr>
+<tr>
+<td><code>thoughtlayer query <query> [--top-k N] [--domain D] [--json]</code></td>
+<td>Hybrid search</td>
+</tr>
+<tr>
+<td><code>thoughtlayer search <term> [--limit N]</code></td>
+<td>Keyword search</td>
+</tr>
+<tr>
+<td><code>thoughtlayer add <content> [--domain D] [--title T] [--importance N] [--tags t1,t2]</code></td>
+<td>Add entry</td>
+</tr>
+<tr>
+<td><code>thoughtlayer curate <text> [--domain D]</code></td>
+<td>LLM extraction</td>
+</tr>
+<tr>
+<td><code>thoughtlayer list [--domain D] [--limit N]</code></td>
+<td>List entries</td>
+</tr>
+<tr>
+<td><code>thoughtlayer status</code></td>
+<td>Ingestion status</td>
+</tr>
+<tr>
+<td><code>thoughtlayer health</code></td>
+<td>Health metrics</td>
+</tr>
+</tbody></table></div>
+<hr>
+<h2 id="mcp-tools">MCP Tools</h2>
+<div class="table-wrapper"><table>
+<thead><tr>
+<th>Tool</th>
+<th>Parameters</th>
+<th>Description</th>
+</tr></thead><tbody>
+<tr>
+<td><code>thoughtlayer_query</code></td>
+<td><code>query</code>, <code>top_k?</code>, <code>domain?</code></td>
+<td>Full retrieval pipeline</td>
+</tr>
+<tr>
+<td><code>thoughtlayer_add</code></td>
+<td><code>title</code>, <code>content</code>, <code>domain?</code>, <code>importance?</code>, <code>tags?</code></td>
+<td>Add entry</td>
+</tr>
+<tr>
+<td><code>thoughtlayer_curate</code></td>
+<td><code>text</code>, <code>domain?</code></td>
+<td>LLM extraction</td>
+</tr>
+<tr>
+<td><code>thoughtlayer_search</code></td>
+<td><code>query</code>, <code>limit?</code></td>
+<td>Keyword search</td>
+</tr>
+<tr>
+<td><code>thoughtlayer_list</code></td>
+<td><code>domain?</code>, <code>limit?</code></td>
+<td>List entries</td>
+</tr>
+<tr>
+<td><code>thoughtlayer_health</code></td>
+<td>(none)</td>
+<td>Health metrics</td>
+</tr>
+</tbody></table></div>
+<p>MCP resources: <code>thoughtlayer://entry/{id}</code>: browse entries by URI.</p>
+<h2 id="embedding-compression">Embedding Compression</h2>
+<h3 id="db-compress-codec-string"><code>db.compress(codec?: string)</code></h3>
+<p>Compress all embeddings in-place using the specified codec. Default: <code>'int8'</code>.</p>
+<p>Returns <code>{ compressed: number, skipped: number, savedBytes: number }</code>.</p>
+<pre><code class="language-typescript">const tl = ThoughtLayer.load('.');
+const db = (tl as any).db;
+const result = db.compress('int8');
+// { compressed: 150, skipped: 0, savedBytes: 345600 }</code></pre>
+<h3 id="db-embeddingstats"><code>db.embeddingStats()</code></h3>
+<p>Returns <code>{ count: number, totalBytes: number, codec: string }</code>.</p>
+<h3 id="cli">CLI</h3>
+<pre><code class="language-bash">thoughtlayer compress              # Compress to int8 (default)
+thoughtlayer compress --codec raw  # Restore to raw (reversible)
+thoughtlayer benchmark             # Measure recall, storage, latency impact</code></pre>
+  </main>
+</body>
+</html>

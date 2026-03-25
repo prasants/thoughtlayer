@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "thoughtlayer": {
+      "command": "npx",
+      "args": ["-y", "thoughtlayer", "mcp"],
+      "env": {
+        "THOUGHTLAYER_PROJECT_ROOT": "/path/to/your/project",
+        "OPENAI_API_KEY": "sk-your-key-here"
+      }
+    }
+  }
+}

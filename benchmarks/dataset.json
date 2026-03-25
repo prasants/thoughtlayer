@@ -1,0 +1,1610 @@
+{
+  "version": 1,
+  "description": "Public benchmark dataset for ThoughtLayer retrieval pipeline. 50 entries, 160 queries, 5 domains. TRAIN SPLIT: do not use validation queries for tuning.",
+  "entries": [
+    {
+      "id": "arch-001",
+      "domain": "architecture",
+      "title": "Database: PostgreSQL with pgvector",
+      "content": "We chose PostgreSQL 16 with pgvector extension for our primary datastore. Key reasons: ACID guarantees for financial data, pgvector for embedding search without a separate vector DB, strong ecosystem, and the team has deep Postgres experience. Rejected MongoDB (schema flexibility not worth the consistency trade-offs) and Pinecone (didn't want a separate managed service for vectors)."
+    },
+    {
+      "id": "arch-002",
+      "domain": "architecture",
+      "title": "API framework: Hono on Cloudflare Workers",
+      "content": "Using Hono as our API framework, deployed on Cloudflare Workers. Chose over Express (too heavy for edge), Fastify (no native edge support), and tRPC (wanted REST for external consumers). Hono gives us type-safe routing, middleware chaining, and sub-millisecond cold starts on Workers."
+    },
+    {
+      "id": "arch-003",
+      "domain": "architecture",
+      "title": "Authentication: Clerk with custom RBAC",
+      "content": "Clerk handles authn (SSO, MFA, session management). We built custom RBAC on top because Clerk's native roles were too coarse. Permissions stored in Postgres, cached in KV. Evaluated Auth0 (expensive at scale), Supabase Auth (tied to Supabase ecosystem), and rolling our own (security risk too high)."
+    },
+    {
+      "id": "arch-004",
+      "domain": "architecture",
+      "title": "Frontend: Next.js 15 App Router",
+      "content": "Frontend is Next.js 15 with App Router and Server Components. Using Tailwind CSS + shadcn/ui for styling. Chose over Remix (less mature ecosystem), SvelteKit (team doesn't know Svelte), and plain React SPA (wanted SSR for SEO on marketing pages). Deployment on Vercel."
+    },
+    {
+      "id": "arch-005",
+      "domain": "architecture",
+      "title": "Message queue: Upstash Kafka",
+      "content": "Upstash Kafka for async job processing and event streaming. Replaced our previous BullMQ + Redis setup which couldn't handle cross-region replication. Key use cases: webhook delivery, email sending, PDF generation, and audit log streaming. 99.99% delivery guarantee with dead letter queues."
+    },
+    {
+      "id": "arch-006",
+      "domain": "architecture",
+      "title": "File storage: Cloudflare R2",
+      "content": "Cloudflare R2 for all file storage (user uploads, generated PDFs, exports). Chose over S3 (egress fees) and Supabase Storage (vendor lock-in). R2 is S3-compatible so migration path is easy. Presigned URLs for direct uploads from the client. Lifecycle rules auto-archive files older than 90 days."
+    },
+    {
+      "id": "arch-007",
+      "domain": "architecture",
+      "title": "Search: Typesense",
+      "content": "Typesense for user-facing search (product search, document search). Evaluated Algolia (too expensive), Meilisearch (weaker relevancy tuning), and Elasticsearch (overkill for our scale). Typesense gives us typo tolerance, faceted search, and geo-search with a simple API. Self-hosted on a single node for now."
+    },
+    {
+      "id": "arch-008",
+      "domain": "architecture",
+      "title": "Caching strategy: multi-layer",
+      "content": "Three cache layers: 1) Cloudflare KV for edge-cached config and feature flags (TTL 60s), 2) Upstash Redis for session data and hot queries (TTL varies), 3) In-memory LRU in Workers for per-request dedup. Cache invalidation via Kafka events. No stale-while-revalidate \u2014 we prefer correctness over speed for financial data."
+    },
+    {
+      "id": "arch-009",
+      "domain": "architecture",
+      "title": "Monorepo: Turborepo with pnpm",
+      "content": "Monorepo managed by Turborepo with pnpm workspaces. Packages: api, web, shared (types + utils), email (React Email templates), db (Drizzle schema + migrations). CI runs only affected packages. Build cache shared via Vercel Remote Cache. Rejected Nx (too complex), Lerna (deprecated vibes)."
+    },
+    {
+      "id": "arch-010",
+      "domain": "architecture",
+      "title": "Observability: Axiom + Sentry",
+      "content": "Axiom for structured logs and traces (OpenTelemetry compatible). Sentry for error tracking and performance monitoring. Chose over Datadog (cost), Grafana Cloud (complexity), and self-hosted ELK (maintenance burden). Custom dashboard in Axiom for business metrics (revenue, signups, churn)."
+    },
+    {
+      "id": "ops-001",
+      "domain": "operations",
+      "title": "Deployment: GitHub Actions to Cloudflare",
+      "content": "CI/CD via GitHub Actions. PRs get preview deployments on Cloudflare. Main branch auto-deploys to staging. Production requires manual approval from two team members. Deployment takes ~90 seconds end-to-end. Rollback is instant via Cloudflare's deployment history."
+    },
+    {
+      "id": "ops-002",
+      "domain": "operations",
+      "title": "Database migrations: Drizzle Kit",
+      "content": "Drizzle ORM with Drizzle Kit for migrations. Migrations are generated from schema changes and reviewed in PRs. Applied automatically in CI for staging, manually triggered for production. Backwards-compatible migrations only \u2014 never drop columns in the same release that removes the code reading them."
+    },
+    {
+      "id": "ops-003",
+      "domain": "operations",
+      "title": "Secrets management: Cloudflare Secrets + 1Password",
+      "content": "Runtime secrets in Cloudflare Workers Secrets (encrypted at rest, injected as env vars). Development secrets in 1Password, pulled via `op run` in local dev. Never committed to git. Rotated quarterly for API keys, immediately on team member departure. Secret scanning enabled in GitHub."
+    },
+    {
+      "id": "ops-004",
+      "domain": "operations",
+      "title": "Staging environment mirrors production",
+      "content": "Staging runs identical infrastructure to production but with synthetic data. Seeded weekly from a sanitised production snapshot (PII removed via pg_anonymize). Staging uses separate Clerk, Stripe, and Upstash instances. Feature flags allow testing new features in staging before production rollout."
+    },
+    {
+      "id": "ops-005",
+      "domain": "operations",
+      "title": "On-call rotation: PagerDuty",
+      "content": "PagerDuty for on-call with weekly rotation. Primary + secondary on-call. Escalation: 5 min to primary, 15 min to secondary, 30 min to engineering lead. Alerts from Sentry (error spike), Axiom (latency p99 > 2s), and UptimeRobot (endpoint down). Post-incident review within 48 hours."
+    },
+    {
+      "id": "ops-006",
+      "domain": "operations",
+      "title": "Cost management: monthly review",
+      "content": "Monthly infrastructure cost review. Current burn: ~$2,400/month (Cloudflare $200, Upstash $150, Vercel $100, Axiom $100, PagerDuty $50, Typesense VPS $80, Postgres $400, misc $1,320). Target: keep infra under 5% of revenue. Alerts set for any service exceeding 120% of expected monthly cost."
+    },
+    {
+      "id": "ops-007",
+      "domain": "operations",
+      "title": "Backup strategy: daily + WAL archiving",
+      "content": "PostgreSQL: daily full backups to R2, continuous WAL archiving via pgBackRest. Point-in-time recovery up to 30 days. Tested monthly by restoring to a fresh instance and running integration tests. R2: versioned buckets with 90-day retention. No backup for Cloudflare KV (reconstructible from source of truth)."
+    },
+    {
+      "id": "ops-008",
+      "domain": "operations",
+      "title": "Feature flags: Cloudflare KV-based",
+      "content": "Custom feature flag system using Cloudflare KV. Flags defined in a JSON file in the repo, synced to KV on deploy. Supports percentage rollouts, user targeting, and environment overrides. Chose over LaunchDarkly (cost) and Unleash (self-hosting burden). Dashboard in admin panel for toggling flags without deploys."
+    },
+    {
+      "id": "ops-009",
+      "domain": "operations",
+      "title": "Local development setup",
+      "content": "Local dev uses Docker Compose for Postgres and Typesense. Cloudflare Workers run via Miniflare. Hot reload via Turborepo watch mode. Seed script creates test data including sample users, products, and transactions. New developer onboarding target: running locally within 30 minutes."
+    },
+    {
+      "id": "ops-010",
+      "domain": "operations",
+      "title": "Rate limiting: sliding window",
+      "content": "Rate limiting via Upstash Redis sliding window. Limits: 100 req/min for authenticated users, 20 req/min for anonymous, 1000 req/min for API keys. Per-endpoint overrides for expensive operations (PDF generation: 5/min, search: 30/min). Returns Retry-After header. Exempt: health checks, webhooks with valid signatures."
+    },
+    {
+      "id": "prod-001",
+      "domain": "product",
+      "title": "Pricing: three tiers",
+      "content": "Three pricing tiers: Free (up to 100 documents, 1 user), Pro ($29/month, unlimited documents, 5 users, API access), Enterprise (custom, SSO, audit logs, SLA). Free tier is generous enough to be useful but limited enough to convert. Annual billing gets 2 months free. Stripe for billing."
+    },
+    {
+      "id": "prod-002",
+      "domain": "product",
+      "title": "Target market: mid-market compliance teams",
+      "content": "Primary target: compliance teams at companies with 50-500 employees in regulated industries (fintech, healthtech, legaltech). They need document management with audit trails, and they're currently using shared drives + spreadsheets. Secondary market: solo consultants managing compliance for multiple clients."
+    },
+    {
+      "id": "prod-003",
+      "domain": "product",
+      "title": "Core differentiator: AI document extraction",
+      "content": "What sets us apart is AI-powered document extraction. Upload a regulatory filing, contract, or policy doc \u2014 our system extracts key dates, obligations, entities, and clauses automatically. Competitors make you tag everything manually. We use Claude 3.5 Sonnet for extraction (best accuracy in our tests) with human-in-the-loop verification."
+    },
+    {
+      "id": "prod-004",
+      "domain": "product",
+      "title": "Roadmap Q2 2026",
+      "content": "Q2 2026 roadmap: 1) Multi-jurisdiction support (track obligations across different regulatory regimes), 2) Automated deadline reminders with escalation chains, 3) Public API v2 with webhook support, 4) SOC 2 Type II certification, 5) Slack integration for notifications. Stretch: mobile app for on-the-go approvals."
+    },
+    {
+      "id": "prod-005",
+      "domain": "product",
+      "title": "Analytics: Plausible self-hosted",
+      "content": "Product analytics via self-hosted Plausible (privacy-first, no cookies, GDPR compliant without consent banners). Custom events for key flows: document upload, extraction complete, export, invite teammate. Funnel analysis in Plausible. No Mixpanel/Amplitude \u2014 too invasive for our compliance-focused customers."
+    },
+    {
+      "id": "prod-006",
+      "domain": "product",
+      "title": "Onboarding: guided setup wizard",
+      "content": "New user onboarding: 4-step wizard. 1) Create organisation, 2) Import first document (drag-and-drop or email forward), 3) Review AI extraction results, 4) Invite a teammate. Target: time-to-value under 5 minutes. Skip option for each step. Checklist persists in sidebar until all steps complete."
+    },
+    {
+      "id": "prod-007",
+      "domain": "product",
+      "title": "Email forwarding for document ingestion",
+      "content": "Each organisation gets a unique email address (e.g., docs-abc123@ingest.ourapp.com). Forward any document to this address and it's automatically ingested, classified, and extracted. Uses Cloudflare Email Workers for receiving. Supports PDF, DOCX, and images (via OCR). This is our most-loved feature per NPS surveys."
+    },
+    {
+      "id": "prod-008",
+      "domain": "product",
+      "title": "Export: PDF reports with branding",
+      "content": "Users can export compliance reports as branded PDFs. Custom logo, colours, and footer text. Generated server-side using Puppeteer on a dedicated VM (too heavy for Workers). Templates: compliance summary, document register, obligation tracker, audit trail. Enterprise tier gets custom report templates."
+    },
+    {
+      "id": "prod-009",
+      "domain": "product",
+      "title": "Multi-tenancy: organisation-level isolation",
+      "content": "Data isolation at the organisation level. Row-level security in Postgres enforced via application middleware and database policies. Each org has a UUID; every table has org_id. Cross-org queries are impossible by design. Tested with automated penetration testing quarterly."
+    },
+    {
+      "id": "prod-010",
+      "domain": "product",
+      "title": "Accessibility: WCAG 2.1 AA target",
+      "content": "Targeting WCAG 2.1 AA compliance. Using axe-core in CI to catch regressions. Key areas: keyboard navigation, screen reader support, colour contrast, focus management. Monthly accessibility audit by a third-party firm. Required for enterprise sales (especially government and healthcare customers)."
+    },
+    {
+      "id": "ppl-001",
+      "domain": "people",
+      "title": "Team structure: 8 people",
+      "content": "Current team: 8 full-time. CEO (Maya), CTO (James), 3 engineers (Sarah, Luis, Priya), 1 designer (Tom), 1 customer success (Rachel), 1 sales (Marcus). No dedicated DevOps \u2014 engineers own their services. No PM \u2014 CEO and CTO split product decisions. Hiring: senior backend engineer (Postgres experience required)."
+    },
+    {
+      "id": "ppl-002",
+      "domain": "people",
+      "title": "Work schedule: async-first",
+      "content": "Async-first culture. Core overlap hours: 2 PM \u2013 5 PM UTC for meetings. No meetings on Wednesdays (Focus Day). Standup is async in Slack (#standup channel, posted by 10 AM local time). All-hands every other Friday at 3 PM UTC. Team spans UTC-5 to UTC+5:30."
+    },
+    {
+      "id": "ppl-003",
+      "domain": "people",
+      "title": "Sarah: backend lead",
+      "content": "Priya Mehta \u2014 senior backend engineer, effectively backend lead. 4 years at Stripe before joining. Expert in Postgres, distributed systems, and payment integrations. Prefers written specs before coding. Timezone: UTC-5 (New York). Joined month 2. Go-to person for database questions and Stripe integration issues."
+    },
+    {
+      "id": "ppl-004",
+      "domain": "people",
+      "title": "Luis: full-stack, strongest on frontend",
+      "content": "Bogdan Petrescu \u2014 full-stack engineer, strongest on frontend. Background in design systems at Figma. Owns the component library and design system. Prefers pair programming for complex features. Timezone: UTC-6 (Mexico City). Joined month 4. Working on the mobile app prototype."
+    },
+    {
+      "id": "ppl-005",
+      "domain": "people",
+      "title": "Priya: ML and AI pipeline",
+      "content": "Anke Vogel \u2014 engineer focused on ML/AI. Built the document extraction pipeline. Background in NLP at Google. Owns the Claude integration, OCR pipeline, and extraction accuracy metrics. Timezone: UTC+5:30 (Bangalore). Joined month 3. Currently optimising extraction costs (batching + caching)."
+    },
+    {
+      "id": "ppl-006",
+      "domain": "people",
+      "title": "Tom: sole designer",
+      "content": "Tom Wilson \u2014 sole designer. Product and visual design. Runs user research sessions fortnightly. Uses Figma for designs, Linear for tracking. Prefers to be involved early in feature discussions, not handed specs to 'make pretty'. Timezone: UTC+0 (London). Joined month 1. Strong opinions on accessibility."
+    },
+    {
+      "id": "ppl-007",
+      "domain": "people",
+      "title": "Rachel: customer success",
+      "content": "Fiona Gallagher \u2014 customer success. Handles onboarding, support escalations, and feature requests. Runs weekly office hours for customers. Maintains the help centre (Intercom). Timezone: UTC-8 (San Francisco). Joined month 5. Best source of customer pain points. Routes feedback to Linear with tags."
+    },
+    {
+      "id": "ppl-008",
+      "domain": "people",
+      "title": "Marcus: sales, enterprise focus",
+      "content": "Idris Mensah \u2014 sales, focused on enterprise. Pipeline in HubSpot. Current focus: SOC 2 is blocking 3 enterprise deals worth ~$180k ARR combined. Timezone: UTC-5 (New York). Joined month 6. Previously at Vanta selling compliance tools. Brings strong network in compliance/GRC space."
+    },
+    {
+      "id": "ppl-009",
+      "domain": "people",
+      "title": "Hiring: senior backend engineer",
+      "content": "Open role: senior backend engineer. Requirements: strong Postgres (performance tuning, partitioning, RLS), TypeScript, distributed systems. Nice-to-have: fintech or compliance background, Cloudflare Workers experience. Comp: $180-220k + 0.3-0.5% equity. Pipeline: 12 candidates, 3 in final round. Target close: end of Q1."
+    },
+    {
+      "id": "ppl-010",
+      "domain": "people",
+      "title": "James: CTO, architecture decisions",
+      "content": "Niall Brennan \u2014 CTO and co-founder. Makes final calls on architecture. Background: 8 years at AWS (DynamoDB team), then 3 years at a YC startup. Prefers boring technology over cutting-edge. Strong opinions: no microservices until team > 20, no GraphQL (REST is simpler for our use case), every engineer owns their on-call."
+    },
+    {
+      "id": "inc-001",
+      "domain": "incidents",
+      "title": "2026-01-15: Database connection pool exhaustion",
+      "content": "Incident: Postgres connection pool exhausted, causing 502 errors for 23 minutes. Root cause: a new background job was opening connections without releasing them (missing finally block). Fix: added connection pool monitoring to Axiom, set max connections per worker to 5, added connection timeout of 10s. Lesson: every new job type needs a connection management review."
+    },
+    {
+      "id": "inc-002",
+      "domain": "incidents",
+      "title": "2026-01-28: Stripe webhook replay caused duplicate charges",
+      "content": "Incident: Stripe webhook endpoint returned 500 during a deploy, causing Stripe to replay events. Our handler wasn't idempotent \u2014 14 customers were charged twice. Fix: added idempotency key check (store processed event IDs in Redis with 48h TTL), refunded all affected customers within 2 hours, sent personal apology emails. Lesson: ALL webhook handlers must be idempotent from day one."
+    },
+    {
+      "id": "inc-003",
+      "domain": "incidents",
+      "title": "2026-02-05: Extraction pipeline hallucination",
+      "content": "Incident: Claude extracted a non-existent deadline from a regulatory document, causing a customer to file early unnecessarily. Root cause: the document referenced another document's deadline in a footnote; Claude treated it as the primary deadline. Fix: added confidence scores to extractions, flag anything below 0.85 for human review, added 'verify critical dates' step in the UI. Lesson: LLM extraction of dates and deadlines needs mandatory human verification."
+    },
+    {
+      "id": "inc-004",
+      "domain": "incidents",
+      "title": "2026-02-12: DNS propagation delay after domain transfer",
+      "content": "Incident: Transferred domain to Cloudflare, but DNS propagation took 6 hours instead of expected 1 hour. Marketing site and API were intermittently unreachable. Root cause: old registrar held the zone for longer than expected. Fix: next time, set TTL to 300s 48 hours before transfer, verify propagation with multiple DNS checkers before announcing. Lesson: always reduce TTL before any DNS change."
+    },
+    {
+      "id": "inc-005",
+      "domain": "incidents",
+      "title": "2026-02-20: Memory leak in PDF generation",
+      "content": "Incident: PDF generation VM ran out of memory, causing all exports to fail for 4 hours. Root cause: Puppeteer instances weren't being closed after generating PDFs in error cases. Memory grew from 2GB to 16GB over 3 days. Fix: added explicit cleanup in finally blocks, set per-instance memory limit, added memory usage alerts at 70% and 90%. Lesson: Puppeteer is a memory hog \u2014 always clean up, always monitor."
+    },
+    {
+      "id": "inc-006",
+      "domain": "incidents",
+      "title": "2026-03-01: Rate limiter blocked legitimate traffic",
+      "content": "Incident: A customer's integration made 150 API calls in a burst to sync their document library. Hit the 100/min rate limit and got blocked. They didn't see the 429 response or Retry-After header because their HTTP client swallowed non-2xx responses. Fix: increased API key limit to 500/min, added rate limit headers to all responses (not just 429s), added rate limit documentation to API docs. Lesson: rate limits should be generous for API keys and well-documented."
+    },
+    {
+      "id": "inc-007",
+      "domain": "incidents",
+      "title": "2025-12-10: Data export included other org's data",
+      "content": "Incident: Critical security issue. A PDF export included 3 documents from another organisation. Root cause: the export query joined on document_id without filtering by org_id. Discovered by the affected customer. Fix: emergency patch within 1 hour, full audit of all queries (found 2 more missing org_id filters), added automated RLS test suite that attempts cross-org access for every endpoint. Lesson: row-level security must be tested, not just implemented."
+    },
+    {
+      "id": "inc-008",
+      "domain": "incidents",
+      "title": "2026-01-05: Typesense index corruption",
+      "content": "Incident: Search returned stale results for 2 days before anyone noticed. Root cause: Typesense index got corrupted after an unclean shutdown during a VPS host migration. Fix: rebuilt index from Postgres (took 45 minutes), added daily index integrity check that compares Typesense doc count with Postgres count, added search freshness alert. Lesson: search indexes are derived data \u2014 always have a rebuild path."
+    },
+    {
+      "id": "inc-009",
+      "domain": "incidents",
+      "title": "2026-02-25: Email ingestion spam flood",
+      "content": "Incident: Someone discovered an org's ingestion email address and sent 50,000 spam emails. Each triggered document processing, consuming $200 in Claude API costs in 2 hours. Fix: added rate limiting on ingestion (50 emails/hour per org), added sender allowlist option, added file type validation before sending to Claude, refunded the API costs from our margin. Lesson: any public-facing endpoint WILL be abused \u2014 rate limit everything."
+    },
+    {
+      "id": "inc-010",
+      "domain": "incidents",
+      "title": "2026-03-08: Clerk outage caused login failures",
+      "content": "Incident: Clerk had a 45-minute outage. All login attempts failed. Existing sessions continued working (JWT validation is local). Fix: nothing we could do during the outage. Post-incident: evaluated self-hosting auth (decided against \u2014 Clerk's uptime is still better than what we'd achieve), added Clerk status to our status page, documented the dependency for customers. Lesson: third-party auth is a single point of failure \u2014 accept the trade-off but be transparent about it."
+    }
+  ],
+  "queries": [
+    {
+      "id": "q-001",
+      "query": "What database are we using and why?",
+      "relevant": [
+        "arch-001"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-002",
+      "query": "How do we handle authentication?",
+      "relevant": [
+        "arch-003"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-004",
+      "query": "Who should I ask about Postgres performance?",
+      "relevant": [
+        "ppl-003",
+        "ppl-010"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-005",
+      "query": "How much does our infrastructure cost?",
+      "relevant": [
+        "ops-006"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-006",
+      "query": "What's our caching strategy?",
+      "relevant": [
+        "arch-008"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-008",
+      "query": "What's on the roadmap for next quarter?",
+      "relevant": [
+        "prod-004"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-009",
+      "query": "How do we deploy to production?",
+      "relevant": [
+        "ops-001"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-010",
+      "query": "Who handles customer success?",
+      "relevant": [
+        "ppl-007"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-012",
+      "query": "How do we manage secrets?",
+      "relevant": [
+        "ops-003"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-013",
+      "query": "What security incidents have we had?",
+      "relevant": [
+        "inc-007",
+        "inc-009"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-014",
+      "query": "How do we handle database migrations?",
+      "relevant": [
+        "ops-002"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-015",
+      "query": "What AI model do we use for document extraction?",
+      "relevant": [
+        "prod-003",
+        "ppl-005"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-017",
+      "query": "How do feature flags work?",
+      "relevant": [
+        "ops-008"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-018",
+      "query": "What's the backup strategy for the database?",
+      "relevant": [
+        "ops-007"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-019",
+      "query": "Who's working on the mobile app?",
+      "relevant": [
+        "ppl-004",
+        "prod-004"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-020",
+      "query": "How do customers get documents into the system?",
+      "relevant": [
+        "prod-006",
+        "prod-007"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-021",
+      "query": "What went wrong with search results being stale?",
+      "relevant": [
+        "inc-008"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-023",
+      "query": "How do we monitor errors and performance?",
+      "relevant": [
+        "arch-010",
+        "ops-005"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-024",
+      "query": "What are the rate limits for the API?",
+      "relevant": [
+        "ops-010",
+        "inc-006"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-025",
+      "query": "How is data isolated between organisations?",
+      "relevant": [
+        "prod-009",
+        "inc-007"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-026",
+      "query": "Where do we store files?",
+      "relevant": [
+        "arch-006"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-028",
+      "query": "How does the email ingestion work?",
+      "relevant": [
+        "prod-007",
+        "inc-009"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-029",
+      "query": "What analytics tool do we use?",
+      "relevant": [
+        "prod-005"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-030",
+      "query": "DNS issues during the domain transfer",
+      "relevant": [
+        "inc-004"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-031",
+      "query": "Who has strong opinions about architecture?",
+      "relevant": [
+        "ppl-010"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-032",
+      "query": "How long should onboarding a new developer take?",
+      "relevant": [
+        "ops-009"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-034",
+      "query": "Are we hiring anyone?",
+      "relevant": [
+        "ppl-009"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-035",
+      "query": "How does staging differ from production?",
+      "relevant": [
+        "ops-004"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-036",
+      "query": "What happened when Claude hallucinated a deadline?",
+      "relevant": [
+        "inc-003"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-037",
+      "query": "How do we generate PDF reports?",
+      "relevant": [
+        "prod-008",
+        "inc-005"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-039",
+      "query": "What happened when Clerk went down?",
+      "relevant": [
+        "inc-010",
+        "arch-003"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-040",
+      "query": "Who does user research?",
+      "relevant": [
+        "ppl-006"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-041",
+      "query": "Who has experience with payment processing?",
+      "relevant": [
+        "ppl-003"
+      ],
+      "note": "Sarah has Stripe experience, but query uses synonym payment processing"
+    },
+    {
+      "id": "q-043",
+      "query": "Best person to ask about database scaling",
+      "relevant": [
+        "ppl-003",
+        "ppl-010"
+      ],
+      "note": "No scaling keyword in entries, requires understanding Postgres expert = scaling"
+    },
+    {
+      "id": "q-044",
+      "query": "Any problems with third-party dependencies?",
+      "relevant": [
+        "inc-010",
+        "arch-003"
+      ],
+      "note": "Clerk outage, requires understanding Clerk is a third-party"
+    },
+    {
+      "id": "q-045",
+      "query": "How do we prevent the same event being processed twice?",
+      "relevant": [
+        "inc-002"
+      ],
+      "note": "Idempotency lesson, no direct keyword match"
+    },
+    {
+      "id": "q-047",
+      "query": "What happens if someone sends junk to our system?",
+      "relevant": [
+        "inc-009"
+      ],
+      "note": "Spam flood incident, junk = spam"
+    },
+    {
+      "id": "q-049",
+      "query": "How do we make sure queries only see their own data?",
+      "relevant": [
+        "prod-009",
+        "inc-007"
+      ],
+      "note": "Row-level security, multi-tenancy isolation"
+    },
+    {
+      "id": "q-052",
+      "query": "Who is responsible for how the product looks?",
+      "relevant": [
+        "ppl-006"
+      ],
+      "note": "Tom is designer, looks = visual design"
+    },
+    {
+      "id": "q-054",
+      "query": "What technology do we avoid and why?",
+      "relevant": [
+        "ppl-010"
+      ],
+      "note": "James CTO no microservices, no GraphQL - avoidance decisions"
+    },
+    {
+      "id": "q-041",
+      "query": "Why did we pick Postgres over MongoDB?",
+      "relevant": [
+        "arch-001"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-042",
+      "query": "What vector database do we use?",
+      "relevant": [
+        "arch-001"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-043",
+      "query": "pgvector setup",
+      "relevant": [
+        "arch-001"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-044",
+      "query": "What rejected alternatives were there for the API framework?",
+      "relevant": [
+        "arch-002"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-045",
+      "query": "Why not Express?",
+      "relevant": [
+        "arch-002"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-046",
+      "query": "How do edge functions work in our stack?",
+      "relevant": [
+        "arch-002"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-047",
+      "query": "SSO and MFA implementation",
+      "relevant": [
+        "arch-003"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-048",
+      "query": "Why did we build custom permissions instead of using Clerk's?",
+      "relevant": [
+        "arch-003"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-049",
+      "query": "RBAC system",
+      "relevant": [
+        "arch-003"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-050",
+      "query": "What styling system do we use?",
+      "relevant": [
+        "arch-004"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-051",
+      "query": "shadcn components",
+      "relevant": [
+        "arch-004"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-052",
+      "query": "Why not SvelteKit?",
+      "relevant": [
+        "arch-004"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-053",
+      "query": "How do we handle async job processing?",
+      "relevant": [
+        "arch-005"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-054",
+      "query": "What replaced BullMQ?",
+      "relevant": [
+        "arch-005"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-055",
+      "query": "Where do uploaded files go?",
+      "relevant": [
+        "arch-006"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-056",
+      "query": "Why R2 instead of S3?",
+      "relevant": [
+        "arch-006"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-057",
+      "query": "How does product search work?",
+      "relevant": [
+        "arch-007"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-058",
+      "query": "Why Typesense over Algolia?",
+      "relevant": [
+        "arch-007"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-059",
+      "query": "What are the cache layers?",
+      "relevant": [
+        "arch-008"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-060",
+      "query": "Edge caching configuration",
+      "relevant": [
+        "arch-008"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-061",
+      "query": "How is the monorepo structured?",
+      "relevant": [
+        "arch-009"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-062",
+      "query": "What packages exist in the workspace?",
+      "relevant": [
+        "arch-009"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-063",
+      "query": "How do we do logging?",
+      "relevant": [
+        "arch-010"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-064",
+      "query": "Error tracking setup",
+      "relevant": [
+        "arch-010"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-065",
+      "query": "How does deployment to production work?",
+      "relevant": [
+        "ops-001"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-066",
+      "query": "Who approves production deploys?",
+      "relevant": [
+        "ops-001"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-067",
+      "query": "How do database migrations work?",
+      "relevant": [
+        "ops-002"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-068",
+      "query": "Drizzle ORM setup",
+      "relevant": [
+        "ops-002"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-069",
+      "query": "Where are secrets stored?",
+      "relevant": [
+        "ops-003"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-070",
+      "query": "1Password integration",
+      "relevant": [
+        "ops-003"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-071",
+      "query": "How is staging different from production?",
+      "relevant": [
+        "ops-004"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-072",
+      "query": "Is staging data real or synthetic?",
+      "relevant": [
+        "ops-004"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-073",
+      "query": "How does on-call work?",
+      "relevant": [
+        "ops-005"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-074",
+      "query": "PagerDuty escalation policy",
+      "relevant": [
+        "ops-005"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-075",
+      "query": "What does infrastructure cost monthly?",
+      "relevant": [
+        "ops-006"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-076",
+      "query": "Biggest line items in our cloud bill",
+      "relevant": [
+        "ops-006"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-077",
+      "query": "Database backup and recovery",
+      "relevant": [
+        "ops-007"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-078",
+      "query": "How far back can we restore data?",
+      "relevant": [
+        "ops-007"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-079",
+      "query": "How do feature flags work?",
+      "relevant": [
+        "ops-008"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-080",
+      "query": "Percentage rollout mechanism",
+      "relevant": [
+        "ops-008"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-081",
+      "query": "How do I set up my local dev environment?",
+      "relevant": [
+        "ops-009"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-082",
+      "query": "Docker compose for local development",
+      "relevant": [
+        "ops-009"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-083",
+      "query": "API rate limits",
+      "relevant": [
+        "ops-010"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-084",
+      "query": "What happens when a user exceeds the rate limit?",
+      "relevant": [
+        "ops-010"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-085",
+      "query": "How much does the Pro plan cost?",
+      "relevant": [
+        "prod-001"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-086",
+      "query": "What features are on the free tier?",
+      "relevant": [
+        "prod-001"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-087",
+      "query": "Enterprise pricing",
+      "relevant": [
+        "prod-001"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-088",
+      "query": "Who is our ideal customer?",
+      "relevant": [
+        "prod-002"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-089",
+      "query": "Why compliance teams in regulated industries?",
+      "relevant": [
+        "prod-002"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-090",
+      "query": "What makes our product different from competitors?",
+      "relevant": [
+        "prod-003"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-091",
+      "query": "Document extraction capability",
+      "relevant": [
+        "prod-003"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-092",
+      "query": "What are we building next quarter?",
+      "relevant": [
+        "prod-004"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-093",
+      "query": "Q2 priorities",
+      "relevant": [
+        "prod-004"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-094",
+      "query": "How do we track product analytics?",
+      "relevant": [
+        "prod-005"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-095",
+      "query": "Is our analytics GDPR compliant?",
+      "relevant": [
+        "prod-005"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-096",
+      "query": "New user onboarding flow",
+      "relevant": [
+        "prod-006"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-097",
+      "query": "How many steps in the setup wizard?",
+      "relevant": [
+        "prod-006"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-098",
+      "query": "Can users email documents to import them?",
+      "relevant": [
+        "prod-007"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-099",
+      "query": "Document ingestion via email",
+      "relevant": [
+        "prod-007"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-100",
+      "query": "PDF export branding options",
+      "relevant": [
+        "prod-008"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-101",
+      "query": "How are compliance reports generated?",
+      "relevant": [
+        "prod-008"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-102",
+      "query": "How is data isolated between organisations?",
+      "relevant": [
+        "prod-009"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-103",
+      "query": "Row-level security implementation",
+      "relevant": [
+        "prod-009"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-104",
+      "query": "Accessibility standards we target",
+      "relevant": [
+        "prod-010"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-105",
+      "query": "WCAG compliance testing",
+      "relevant": [
+        "prod-010"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-106",
+      "query": "Who is the CTO?",
+      "relevant": [
+        "ppl-010"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-107",
+      "query": "Niall's background",
+      "relevant": [
+        "ppl-010"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-108",
+      "query": "Who worked at Stripe before joining?",
+      "relevant": [
+        "ppl-003"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-109",
+      "query": "Priya's expertise",
+      "relevant": [
+        "ppl-003"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-110",
+      "query": "Who builds the AI extraction pipeline?",
+      "relevant": [
+        "ppl-005"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-111",
+      "query": "Anke's background",
+      "relevant": [
+        "ppl-005"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-112",
+      "query": "Who handles enterprise sales?",
+      "relevant": [
+        "ppl-008"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-113",
+      "query": "Idris pipeline status",
+      "relevant": [
+        "ppl-008"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-114",
+      "query": "SOC 2 blocking deals",
+      "relevant": [
+        "ppl-008"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-115",
+      "query": "Who runs user research?",
+      "relevant": [
+        "ppl-006"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-116",
+      "query": "Tom's design process",
+      "relevant": [
+        "ppl-006"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-117",
+      "query": "What role are we hiring for?",
+      "relevant": [
+        "ppl-009"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-118",
+      "query": "Backend engineer job requirements",
+      "relevant": [
+        "ppl-009"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-119",
+      "query": "Who handles customer support?",
+      "relevant": [
+        "ppl-007"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-120",
+      "query": "Fiona's responsibilities",
+      "relevant": [
+        "ppl-007"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-121",
+      "query": "How big is the team?",
+      "relevant": [
+        "ppl-001"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-122",
+      "query": "Full team roster",
+      "relevant": [
+        "ppl-001"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-123",
+      "query": "Meeting schedule and focus days",
+      "relevant": [
+        "ppl-002"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-124",
+      "query": "When are core overlap hours?",
+      "relevant": [
+        "ppl-002"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-125",
+      "query": "Bogdan's strongest skills",
+      "relevant": [
+        "ppl-004"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-126",
+      "query": "Who owns the component library?",
+      "relevant": [
+        "ppl-004"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-127",
+      "query": "What went wrong with the database in January?",
+      "relevant": [
+        "inc-001"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-128",
+      "query": "Connection pool exhaustion incident",
+      "relevant": [
+        "inc-001"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-129",
+      "query": "Have we ever had duplicate charges?",
+      "relevant": [
+        "inc-002"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-130",
+      "query": "Stripe webhook idempotency issue",
+      "relevant": [
+        "inc-002"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-131",
+      "query": "When did the AI hallucinate something dangerous?",
+      "relevant": [
+        "inc-003"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-132",
+      "query": "Extraction pipeline reliability issues",
+      "relevant": [
+        "inc-003"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-133",
+      "query": "DNS problems",
+      "relevant": [
+        "inc-004"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-134",
+      "query": "Domain transfer incident",
+      "relevant": [
+        "inc-004"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-135",
+      "query": "Puppeteer memory leak",
+      "relevant": [
+        "inc-005"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-136",
+      "query": "PDF generation outage",
+      "relevant": [
+        "inc-005"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-137",
+      "query": "Customer hit rate limits during legitimate use",
+      "relevant": [
+        "inc-006"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-138",
+      "query": "Have we ever leaked data between organisations?",
+      "relevant": [
+        "inc-007"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-139",
+      "query": "Multi-tenancy security breach",
+      "relevant": [
+        "inc-007"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-140",
+      "query": "Search returning stale results",
+      "relevant": [
+        "inc-008"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-141",
+      "query": "Email spam attack on ingestion",
+      "relevant": [
+        "inc-009"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-142",
+      "query": "How much did the spam flood cost us?",
+      "relevant": [
+        "inc-009"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-143",
+      "query": "Third-party auth outage impact",
+      "relevant": [
+        "inc-010"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-144",
+      "query": "Clerk downtime",
+      "relevant": [
+        "inc-010"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-145",
+      "query": "Who should fix the next database incident?",
+      "relevant": [
+        "ppl-003",
+        "inc-001"
+      ],
+      "domain_hint": "cross"
+    },
+    {
+      "id": "q-146",
+      "query": "What technology does the AI engineer work with?",
+      "relevant": [
+        "ppl-005",
+        "prod-003"
+      ],
+      "domain_hint": "cross"
+    },
+    {
+      "id": "q-147",
+      "query": "How does deployment relate to the staging environment?",
+      "relevant": [
+        "ops-001",
+        "ops-004"
+      ],
+      "domain_hint": "cross"
+    },
+    {
+      "id": "q-148",
+      "query": "What security measures protect our multi-tenancy?",
+      "relevant": [
+        "prod-009",
+        "inc-007"
+      ],
+      "domain_hint": "cross"
+    },
+    {
+      "id": "q-149",
+      "query": "Which incidents were caused by missing tests or validation?",
+      "relevant": [
+        "inc-002",
+        "inc-007"
+      ],
+      "domain_hint": "cross"
+    },
+    {
+      "id": "q-150",
+      "query": "What enterprise features are blocking sales?",
+      "relevant": [
+        "ppl-008",
+        "prod-001"
+      ],
+      "domain_hint": "cross"
+    },
+    {
+      "id": "q-151",
+      "query": "tech stack for the backend",
+      "relevant": [
+        "arch-001",
+        "arch-002"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-152",
+      "query": "payment processing issues",
+      "relevant": [
+        "inc-002"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-153",
+      "query": "observability and monitoring",
+      "relevant": [
+        "arch-010"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-154",
+      "query": "data protection between customers",
+      "relevant": [
+        "prod-009"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-155",
+      "query": "how we prevent accidental data leaks",
+      "relevant": [
+        "prod-009",
+        "inc-007"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-156",
+      "query": "infrastructure running costs",
+      "relevant": [
+        "ops-006"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-157",
+      "query": "CI/CD pipeline",
+      "relevant": [
+        "ops-001"
+      ],
+      "domain_hint": "operations"
+    },
+    {
+      "id": "q-158",
+      "query": "event-driven architecture",
+      "relevant": [
+        "arch-005"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-159",
+      "query": "blob storage solution",
+      "relevant": [
+        "arch-006"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-160",
+      "query": "full-text search implementation",
+      "relevant": [
+        "arch-007"
+      ],
+      "domain_hint": "architecture"
+    }
+  ]
+}

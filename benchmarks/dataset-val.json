@@ -1,0 +1,432 @@
+{
+  "version": 1,
+  "description": "VALIDATION SPLIT — held out. Never inspect or optimise for these queries.",
+  "entries": [
+    {
+      "id": "arch-001",
+      "domain": "architecture",
+      "title": "Database: PostgreSQL with pgvector",
+      "content": "We chose PostgreSQL 16 with pgvector extension for our primary datastore. Key reasons: ACID guarantees for financial data, pgvector for embedding search without a separate vector DB, strong ecosystem, and the team has deep Postgres experience. Rejected MongoDB (schema flexibility not worth the consistency trade-offs) and Pinecone (didn't want a separate managed service for vectors)."
+    },
+    {
+      "id": "arch-002",
+      "domain": "architecture",
+      "title": "API framework: Hono on Cloudflare Workers",
+      "content": "Using Hono as our API framework, deployed on Cloudflare Workers. Chose over Express (too heavy for edge), Fastify (no native edge support), and tRPC (wanted REST for external consumers). Hono gives us type-safe routing, middleware chaining, and sub-millisecond cold starts on Workers."
+    },
+    {
+      "id": "arch-003",
+      "domain": "architecture",
+      "title": "Authentication: Clerk with custom RBAC",
+      "content": "Clerk handles authn (SSO, MFA, session management). We built custom RBAC on top because Clerk's native roles were too coarse. Permissions stored in Postgres, cached in KV. Evaluated Auth0 (expensive at scale), Supabase Auth (tied to Supabase ecosystem), and rolling our own (security risk too high)."
+    },
+    {
+      "id": "arch-004",
+      "domain": "architecture",
+      "title": "Frontend: Next.js 15 App Router",
+      "content": "Frontend is Next.js 15 with App Router and Server Components. Using Tailwind CSS + shadcn/ui for styling. Chose over Remix (less mature ecosystem), SvelteKit (team doesn't know Svelte), and plain React SPA (wanted SSR for SEO on marketing pages). Deployment on Vercel."
+    },
+    {
+      "id": "arch-005",
+      "domain": "architecture",
+      "title": "Message queue: Upstash Kafka",
+      "content": "Upstash Kafka for async job processing and event streaming. Replaced our previous BullMQ + Redis setup which couldn't handle cross-region replication. Key use cases: webhook delivery, email sending, PDF generation, and audit log streaming. 99.99% delivery guarantee with dead letter queues."
+    },
+    {
+      "id": "arch-006",
+      "domain": "architecture",
+      "title": "File storage: Cloudflare R2",
+      "content": "Cloudflare R2 for all file storage (user uploads, generated PDFs, exports). Chose over S3 (egress fees) and Supabase Storage (vendor lock-in). R2 is S3-compatible so migration path is easy. Presigned URLs for direct uploads from the client. Lifecycle rules auto-archive files older than 90 days."
+    },
+    {
+      "id": "arch-007",
+      "domain": "architecture",
+      "title": "Search: Typesense",
+      "content": "Typesense for user-facing search (product search, document search). Evaluated Algolia (too expensive), Meilisearch (weaker relevancy tuning), and Elasticsearch (overkill for our scale). Typesense gives us typo tolerance, faceted search, and geo-search with a simple API. Self-hosted on a single node for now."
+    },
+    {
+      "id": "arch-008",
+      "domain": "architecture",
+      "title": "Caching strategy: multi-layer",
+      "content": "Three cache layers: 1) Cloudflare KV for edge-cached config and feature flags (TTL 60s), 2) Upstash Redis for session data and hot queries (TTL varies), 3) In-memory LRU in Workers for per-request dedup. Cache invalidation via Kafka events. No stale-while-revalidate — we prefer correctness over speed for financial data."
+    },
+    {
+      "id": "arch-009",
+      "domain": "architecture",
+      "title": "Monorepo: Turborepo with pnpm",
+      "content": "Monorepo managed by Turborepo with pnpm workspaces. Packages: api, web, shared (types + utils), email (React Email templates), db (Drizzle schema + migrations). CI runs only affected packages. Build cache shared via Vercel Remote Cache. Rejected Nx (too complex), Lerna (deprecated vibes)."
+    },
+    {
+      "id": "arch-010",
+      "domain": "architecture",
+      "title": "Observability: Axiom + Sentry",
+      "content": "Axiom for structured logs and traces (OpenTelemetry compatible). Sentry for error tracking and performance monitoring. Chose over Datadog (cost), Grafana Cloud (complexity), and self-hosted ELK (maintenance burden). Custom dashboard in Axiom for business metrics (revenue, signups, churn)."
+    },
+    {
+      "id": "ops-001",
+      "domain": "operations",
+      "title": "Deployment: GitHub Actions to Cloudflare",
+      "content": "CI/CD via GitHub Actions. PRs get preview deployments on Cloudflare. Main branch auto-deploys to staging. Production requires manual approval from two team members. Deployment takes ~90 seconds end-to-end. Rollback is instant via Cloudflare's deployment history."
+    },
+    {
+      "id": "ops-002",
+      "domain": "operations",
+      "title": "Database migrations: Drizzle Kit",
+      "content": "Drizzle ORM with Drizzle Kit for migrations. Migrations are generated from schema changes and reviewed in PRs. Applied automatically in CI for staging, manually triggered for production. Backwards-compatible migrations only — never drop columns in the same release that removes the code reading them."
+    },
+    {
+      "id": "ops-003",
+      "domain": "operations",
+      "title": "Secrets management: Cloudflare Secrets + 1Password",
+      "content": "Runtime secrets in Cloudflare Workers Secrets (encrypted at rest, injected as env vars). Development secrets in 1Password, pulled via `op run` in local dev. Never committed to git. Rotated quarterly for API keys, immediately on team member departure. Secret scanning enabled in GitHub."
+    },
+    {
+      "id": "ops-004",
+      "domain": "operations",
+      "title": "Staging environment mirrors production",
+      "content": "Staging runs identical infrastructure to production but with synthetic data. Seeded weekly from a sanitised production snapshot (PII removed via pg_anonymize). Staging uses separate Clerk, Stripe, and Upstash instances. Feature flags allow testing new features in staging before production rollout."
+    },
+    {
+      "id": "ops-005",
+      "domain": "operations",
+      "title": "On-call rotation: PagerDuty",
+      "content": "PagerDuty for on-call with weekly rotation. Primary + secondary on-call. Escalation: 5 min to primary, 15 min to secondary, 30 min to engineering lead. Alerts from Sentry (error spike), Axiom (latency p99 > 2s), and UptimeRobot (endpoint down). Post-incident review within 48 hours."
+    },
+    {
+      "id": "ops-006",
+      "domain": "operations",
+      "title": "Cost management: monthly review",
+      "content": "Monthly infrastructure cost review. Current burn: ~$2,400/month (Cloudflare $200, Upstash $150, Vercel $100, Axiom $100, PagerDuty $50, Typesense VPS $80, Postgres $400, misc $1,320). Target: keep infra under 5% of revenue. Alerts set for any service exceeding 120% of expected monthly cost."
+    },
+    {
+      "id": "ops-007",
+      "domain": "operations",
+      "title": "Backup strategy: daily + WAL archiving",
+      "content": "PostgreSQL: daily full backups to R2, continuous WAL archiving via pgBackRest. Point-in-time recovery up to 30 days. Tested monthly by restoring to a fresh instance and running integration tests. R2: versioned buckets with 90-day retention. No backup for Cloudflare KV (reconstructible from source of truth)."
+    },
+    {
+      "id": "ops-008",
+      "domain": "operations",
+      "title": "Feature flags: Cloudflare KV-based",
+      "content": "Custom feature flag system using Cloudflare KV. Flags defined in a JSON file in the repo, synced to KV on deploy. Supports percentage rollouts, user targeting, and environment overrides. Chose over LaunchDarkly (cost) and Unleash (self-hosting burden). Dashboard in admin panel for toggling flags without deploys."
+    },
+    {
+      "id": "ops-009",
+      "domain": "operations",
+      "title": "Local development setup",
+      "content": "Local dev uses Docker Compose for Postgres and Typesense. Cloudflare Workers run via Miniflare. Hot reload via Turborepo watch mode. Seed script creates test data including sample users, products, and transactions. New developer onboarding target: running locally within 30 minutes."
+    },
+    {
+      "id": "ops-010",
+      "domain": "operations",
+      "title": "Rate limiting: sliding window",
+      "content": "Rate limiting via Upstash Redis sliding window. Limits: 100 req/min for authenticated users, 20 req/min for anonymous, 1000 req/min for API keys. Per-endpoint overrides for expensive operations (PDF generation: 5/min, search: 30/min). Returns Retry-After header. Exempt: health checks, webhooks with valid signatures."
+    },
+    {
+      "id": "prod-001",
+      "domain": "product",
+      "title": "Pricing: three tiers",
+      "content": "Three pricing tiers: Free (up to 100 documents, 1 user), Pro ($29/month, unlimited documents, 5 users, API access), Enterprise (custom, SSO, audit logs, SLA). Free tier is generous enough to be useful but limited enough to convert. Annual billing gets 2 months free. Stripe for billing."
+    },
+    {
+      "id": "prod-002",
+      "domain": "product",
+      "title": "Target market: mid-market compliance teams",
+      "content": "Primary target: compliance teams at companies with 50-500 employees in regulated industries (fintech, healthtech, legaltech). They need document management with audit trails, and they're currently using shared drives + spreadsheets. Secondary market: solo consultants managing compliance for multiple clients."
+    },
+    {
+      "id": "prod-003",
+      "domain": "product",
+      "title": "Core differentiator: AI document extraction",
+      "content": "What sets us apart is AI-powered document extraction. Upload a regulatory filing, contract, or policy doc — our system extracts key dates, obligations, entities, and clauses automatically. Competitors make you tag everything manually. We use Claude 3.5 Sonnet for extraction (best accuracy in our tests) with human-in-the-loop verification."
+    },
+    {
+      "id": "prod-004",
+      "domain": "product",
+      "title": "Roadmap Q2 2026",
+      "content": "Q2 2026 roadmap: 1) Multi-jurisdiction support (track obligations across different regulatory regimes), 2) Automated deadline reminders with escalation chains, 3) Public API v2 with webhook support, 4) SOC 2 Type II certification, 5) Slack integration for notifications. Stretch: mobile app for on-the-go approvals."
+    },
+    {
+      "id": "prod-005",
+      "domain": "product",
+      "title": "Analytics: Plausible self-hosted",
+      "content": "Product analytics via self-hosted Plausible (privacy-first, no cookies, GDPR compliant without consent banners). Custom events for key flows: document upload, extraction complete, export, invite teammate. Funnel analysis in Plausible. No Mixpanel/Amplitude — too invasive for our compliance-focused customers."
+    },
+    {
+      "id": "prod-006",
+      "domain": "product",
+      "title": "Onboarding: guided setup wizard",
+      "content": "New user onboarding: 4-step wizard. 1) Create organisation, 2) Import first document (drag-and-drop or email forward), 3) Review AI extraction results, 4) Invite a teammate. Target: time-to-value under 5 minutes. Skip option for each step. Checklist persists in sidebar until all steps complete."
+    },
+    {
+      "id": "prod-007",
+      "domain": "product",
+      "title": "Email forwarding for document ingestion",
+      "content": "Each organisation gets a unique email address (e.g., docs-abc123@ingest.ourapp.com). Forward any document to this address and it's automatically ingested, classified, and extracted. Uses Cloudflare Email Workers for receiving. Supports PDF, DOCX, and images (via OCR). This is our most-loved feature per NPS surveys."
+    },
+    {
+      "id": "prod-008",
+      "domain": "product",
+      "title": "Export: PDF reports with branding",
+      "content": "Users can export compliance reports as branded PDFs. Custom logo, colours, and footer text. Generated server-side using Puppeteer on a dedicated VM (too heavy for Workers). Templates: compliance summary, document register, obligation tracker, audit trail. Enterprise tier gets custom report templates."
+    },
+    {
+      "id": "prod-009",
+      "domain": "product",
+      "title": "Multi-tenancy: organisation-level isolation",
+      "content": "Data isolation at the organisation level. Row-level security in Postgres enforced via application middleware and database policies. Each org has a UUID; every table has org_id. Cross-org queries are impossible by design. Tested with automated penetration testing quarterly."
+    },
+    {
+      "id": "prod-010",
+      "domain": "product",
+      "title": "Accessibility: WCAG 2.1 AA target",
+      "content": "Targeting WCAG 2.1 AA compliance. Using axe-core in CI to catch regressions. Key areas: keyboard navigation, screen reader support, colour contrast, focus management. Monthly accessibility audit by a third-party firm. Required for enterprise sales (especially government and healthcare customers)."
+    },
+    {
+      "id": "ppl-001",
+      "domain": "people",
+      "title": "Team structure: 8 people",
+      "content": "Current team: 8 full-time. CEO (Maya), CTO (James), 3 engineers (Sarah, Luis, Priya), 1 designer (Tom), 1 customer success (Rachel), 1 sales (Marcus). No dedicated DevOps — engineers own their services. No PM — CEO and CTO split product decisions. Hiring: senior backend engineer (Postgres experience required)."
+    },
+    {
+      "id": "ppl-002",
+      "domain": "people",
+      "title": "Work schedule: async-first",
+      "content": "Async-first culture. Core overlap hours: 2 PM – 5 PM UTC for meetings. No meetings on Wednesdays (Focus Day). Standup is async in Slack (#standup channel, posted by 10 AM local time). All-hands every other Friday at 3 PM UTC. Team spans UTC-5 to UTC+5:30."
+    },
+    {
+      "id": "ppl-003",
+      "domain": "people",
+      "title": "Sarah: backend lead",
+      "content": "Priya Mehta — senior backend engineer, effectively backend lead. 4 years at Stripe before joining. Expert in Postgres, distributed systems, and payment integrations. Prefers written specs before coding. Timezone: UTC-5 (New York). Joined month 2. Go-to person for database questions and Stripe integration issues."
+    },
+    {
+      "id": "ppl-004",
+      "domain": "people",
+      "title": "Luis: full-stack, strongest on frontend",
+      "content": "Bogdan Petrescu — full-stack engineer, strongest on frontend. Background in design systems at Figma. Owns the component library and design system. Prefers pair programming for complex features. Timezone: UTC-6 (Mexico City). Joined month 4. Working on the mobile app prototype."
+    },
+    {
+      "id": "ppl-005",
+      "domain": "people",
+      "title": "Priya: ML and AI pipeline",
+      "content": "Anke Vogel — engineer focused on ML/AI. Built the document extraction pipeline. Background in NLP at Google. Owns the Claude integration, OCR pipeline, and extraction accuracy metrics. Timezone: UTC+5:30 (Bangalore). Joined month 3. Currently optimising extraction costs (batching + caching)."
+    },
+    {
+      "id": "ppl-006",
+      "domain": "people",
+      "title": "Tom: sole designer",
+      "content": "Tom Wilson — sole designer. Product and visual design. Runs user research sessions fortnightly. Uses Figma for designs, Linear for tracking. Prefers to be involved early in feature discussions, not handed specs to 'make pretty'. Timezone: UTC+0 (London). Joined month 1. Strong opinions on accessibility."
+    },
+    {
+      "id": "ppl-007",
+      "domain": "people",
+      "title": "Rachel: customer success",
+      "content": "Fiona Gallagher — customer success. Handles onboarding, support escalations, and feature requests. Runs weekly office hours for customers. Maintains the help centre (Intercom). Timezone: UTC-8 (San Francisco). Joined month 5. Best source of customer pain points. Routes feedback to Linear with tags."
+    },
+    {
+      "id": "ppl-008",
+      "domain": "people",
+      "title": "Marcus: sales, enterprise focus",
+      "content": "Idris Mensah — sales, focused on enterprise. Pipeline in HubSpot. Current focus: SOC 2 is blocking 3 enterprise deals worth ~$180k ARR combined. Timezone: UTC-5 (New York). Joined month 6. Previously at Vanta selling compliance tools. Brings strong network in compliance/GRC space."
+    },
+    {
+      "id": "ppl-009",
+      "domain": "people",
+      "title": "Hiring: senior backend engineer",
+      "content": "Open role: senior backend engineer. Requirements: strong Postgres (performance tuning, partitioning, RLS), TypeScript, distributed systems. Nice-to-have: fintech or compliance background, Cloudflare Workers experience. Comp: $180-220k + 0.3-0.5% equity. Pipeline: 12 candidates, 3 in final round. Target close: end of Q1."
+    },
+    {
+      "id": "ppl-010",
+      "domain": "people",
+      "title": "James: CTO, architecture decisions",
+      "content": "Niall Brennan — CTO and co-founder. Makes final calls on architecture. Background: 8 years at AWS (DynamoDB team), then 3 years at a YC startup. Prefers boring technology over cutting-edge. Strong opinions: no microservices until team > 20, no GraphQL (REST is simpler for our use case), every engineer owns their on-call."
+    },
+    {
+      "id": "inc-001",
+      "domain": "incidents",
+      "title": "2026-01-15: Database connection pool exhaustion",
+      "content": "Incident: Postgres connection pool exhausted, causing 502 errors for 23 minutes. Root cause: a new background job was opening connections without releasing them (missing finally block). Fix: added connection pool monitoring to Axiom, set max connections per worker to 5, added connection timeout of 10s. Lesson: every new job type needs a connection management review."
+    },
+    {
+      "id": "inc-002",
+      "domain": "incidents",
+      "title": "2026-01-28: Stripe webhook replay caused duplicate charges",
+      "content": "Incident: Stripe webhook endpoint returned 500 during a deploy, causing Stripe to replay events. Our handler wasn't idempotent — 14 customers were charged twice. Fix: added idempotency key check (store processed event IDs in Redis with 48h TTL), refunded all affected customers within 2 hours, sent personal apology emails. Lesson: ALL webhook handlers must be idempotent from day one."
+    },
+    {
+      "id": "inc-003",
+      "domain": "incidents",
+      "title": "2026-02-05: Extraction pipeline hallucination",
+      "content": "Incident: Claude extracted a non-existent deadline from a regulatory document, causing a customer to file early unnecessarily. Root cause: the document referenced another document's deadline in a footnote; Claude treated it as the primary deadline. Fix: added confidence scores to extractions, flag anything below 0.85 for human review, added 'verify critical dates' step in the UI. Lesson: LLM extraction of dates and deadlines needs mandatory human verification."
+    },
+    {
+      "id": "inc-004",
+      "domain": "incidents",
+      "title": "2026-02-12: DNS propagation delay after domain transfer",
+      "content": "Incident: Transferred domain to Cloudflare, but DNS propagation took 6 hours instead of expected 1 hour. Marketing site and API were intermittently unreachable. Root cause: old registrar held the zone for longer than expected. Fix: next time, set TTL to 300s 48 hours before transfer, verify propagation with multiple DNS checkers before announcing. Lesson: always reduce TTL before any DNS change."
+    },
+    {
+      "id": "inc-005",
+      "domain": "incidents",
+      "title": "2026-02-20: Memory leak in PDF generation",
+      "content": "Incident: PDF generation VM ran out of memory, causing all exports to fail for 4 hours. Root cause: Puppeteer instances weren't being closed after generating PDFs in error cases. Memory grew from 2GB to 16GB over 3 days. Fix: added explicit cleanup in finally blocks, set per-instance memory limit, added memory usage alerts at 70% and 90%. Lesson: Puppeteer is a memory hog — always clean up, always monitor."
+    },
+    {
+      "id": "inc-006",
+      "domain": "incidents",
+      "title": "2026-03-01: Rate limiter blocked legitimate traffic",
+      "content": "Incident: A customer's integration made 150 API calls in a burst to sync their document library. Hit the 100/min rate limit and got blocked. They didn't see the 429 response or Retry-After header because their HTTP client swallowed non-2xx responses. Fix: increased API key limit to 500/min, added rate limit headers to all responses (not just 429s), added rate limit documentation to API docs. Lesson: rate limits should be generous for API keys and well-documented."
+    },
+    {
+      "id": "inc-007",
+      "domain": "incidents",
+      "title": "2025-12-10: Data export included other org's data",
+      "content": "Incident: Critical security issue. A PDF export included 3 documents from another organisation. Root cause: the export query joined on document_id without filtering by org_id. Discovered by the affected customer. Fix: emergency patch within 1 hour, full audit of all queries (found 2 more missing org_id filters), added automated RLS test suite that attempts cross-org access for every endpoint. Lesson: row-level security must be tested, not just implemented."
+    },
+    {
+      "id": "inc-008",
+      "domain": "incidents",
+      "title": "2026-01-05: Typesense index corruption",
+      "content": "Incident: Search returned stale results for 2 days before anyone noticed. Root cause: Typesense index got corrupted after an unclean shutdown during a VPS host migration. Fix: rebuilt index from Postgres (took 45 minutes), added daily index integrity check that compares Typesense doc count with Postgres count, added search freshness alert. Lesson: search indexes are derived data — always have a rebuild path."
+    },
+    {
+      "id": "inc-009",
+      "domain": "incidents",
+      "title": "2026-02-25: Email ingestion spam flood",
+      "content": "Incident: Someone discovered an org's ingestion email address and sent 50,000 spam emails. Each triggered document processing, consuming $200 in Claude API costs in 2 hours. Fix: added rate limiting on ingestion (50 emails/hour per org), added sender allowlist option, added file type validation before sending to Claude, refunded the API costs from our margin. Lesson: any public-facing endpoint WILL be abused — rate limit everything."
+    },
+    {
+      "id": "inc-010",
+      "domain": "incidents",
+      "title": "2026-03-08: Clerk outage caused login failures",
+      "content": "Incident: Clerk had a 45-minute outage. All login attempts failed. Existing sessions continued working (JWT validation is local). Fix: nothing we could do during the outage. Post-incident: evaluated self-hosting auth (decided against — Clerk's uptime is still better than what we'd achieve), added Clerk status to our status page, documented the dependency for customers. Lesson: third-party auth is a single point of failure — accept the trade-off but be transparent about it."
+    }
+  ],
+  "queries": [
+    {
+      "id": "q-003",
+      "query": "What happened with duplicate charges?",
+      "relevant": [
+        "inc-002"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-007",
+      "query": "Tell me about the PDF export memory issue",
+      "relevant": [
+        "inc-005",
+        "prod-008"
+      ],
+      "domain_hint": "incidents"
+    },
+    {
+      "id": "q-011",
+      "query": "What's our pricing model?",
+      "relevant": [
+        "prod-001"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-016",
+      "query": "When is Focus Day?",
+      "relevant": [
+        "ppl-002"
+      ],
+      "domain_hint": "people"
+    },
+    {
+      "id": "q-022",
+      "query": "What's blocking enterprise deals?",
+      "relevant": [
+        "ppl-008",
+        "prod-004"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-027",
+      "query": "What's our approach to accessibility?",
+      "relevant": [
+        "prod-010"
+      ],
+      "domain_hint": "product"
+    },
+    {
+      "id": "q-033",
+      "query": "What message queue do we use?",
+      "relevant": [
+        "arch-005"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-038",
+      "query": "What's our monorepo structure?",
+      "relevant": [
+        "arch-009"
+      ],
+      "domain_hint": "architecture"
+    },
+    {
+      "id": "q-042",
+      "query": "What went wrong with billing customers?",
+      "relevant": [
+        "inc-002"
+      ],
+      "note": "Stripe duplicate charges - billing is synonym for charges"
+    },
+    {
+      "id": "q-046",
+      "query": "Who can help with NLP tasks?",
+      "relevant": [
+        "ppl-005"
+      ],
+      "note": "Priya has NLP background at Google, but NLP not mentioned in extraction context"
+    },
+    {
+      "id": "q-048",
+      "query": "Any concerns about relying on external services?",
+      "relevant": [
+        "inc-010",
+        "arch-003"
+      ],
+      "note": "Clerk dependency, third-party auth trade-off"
+    },
+    {
+      "id": "q-050",
+      "query": "What is our competitive advantage?",
+      "relevant": [
+        "prod-003"
+      ],
+      "note": "Core differentiator = competitive advantage, synonym"
+    },
+    {
+      "id": "q-051",
+      "query": "Any issues with AI making mistakes?",
+      "relevant": [
+        "inc-003"
+      ],
+      "note": "Claude hallucination, AI mistakes = hallucination"
+    },
+    {
+      "id": "q-053",
+      "query": "Fastest way to get a document into the system",
+      "relevant": [
+        "prod-007"
+      ],
+      "note": "Email forwarding is most-loved feature, fastest not mentioned"
+    },
+    {
+      "id": "q-055",
+      "query": "Any lessons about cleaning up resources?",
+      "relevant": [
+        "inc-005",
+        "inc-001"
+      ],
+      "note": "Memory leak + connection pool - both about cleanup"
+    }
+  ]
+}

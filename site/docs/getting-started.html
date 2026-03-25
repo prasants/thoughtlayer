@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Getting Started: ThoughtLayer Docs</title>
+  <meta name="description" content="ThoughtLayer documentation: Getting Started">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #09090b;
+      --text: #e4e4e7;
+      --text-secondary: #71717a;
+      --text-dim: #52525b;
+      --accent: #a78bfa;
+      --green: #4ade80;
+      --surface: #18181b;
+      --border: #27272a;
+      --code-bg: #0f0f12;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Inter', -apple-system, system-ui, sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 2rem 1.5rem;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      overflow-y: auto;
+    }
+
+    .sidebar .logo {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-decoration: none;
+      display: block;
+      margin-bottom: 2rem;
+    }
+
+    .sidebar nav {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .sidebar nav a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      transition: all 0.15s;
+    }
+
+    .sidebar nav a:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .sidebar nav a.active {
+      color: var(--accent);
+      background: rgba(167, 139, 250, 0.1);
+    }
+
+    .sidebar .back-link {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .sidebar .back-link a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.85rem;
+    }
+
+    .sidebar .back-link a:hover { color: var(--text-secondary); }
+
+    /* Main content */
+    .main {
+      margin-left: 260px;
+      padding: 3rem 4rem;
+      max-width: 900px;
+      width: 100%;
+    }
+
+    /* Typography */
+    h1 { font-size: 2rem; font-weight: 600; margin-bottom: 1.5rem; color: var(--text); }
+    h2 { font-size: 1.4rem; font-weight: 600; margin: 2.5rem 0 1rem; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+    h3 { font-size: 1.15rem; font-weight: 600; margin: 2rem 0 0.75rem; color: var(--text); }
+    h4 { font-size: 1rem; font-weight: 600; margin: 1.5rem 0 0.5rem; color: var(--text-secondary); }
+
+    p { margin-bottom: 1rem; color: var(--text-secondary); }
+    strong { color: var(--text); font-weight: 500; }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { margin: 0 0 1rem 1.5rem; color: var(--text-secondary); }
+    li { margin-bottom: 0.4rem; }
+
+    hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+    /* Code */
+    code {
+      font-family: var(--mono);
+      font-size: 0.85em;
+      background: var(--code-bg);
+      padding: 0.2em 0.4em;
+      border-radius: 4px;
+      color: var(--accent);
+    }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      overflow-x: auto;
+      margin: 1rem 0 1.5rem;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+
+    /* Tables */
+    .table-wrapper {
+      overflow-x: auto;
+      margin: 1rem 0 1.5rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      padding: 0.6rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      color: var(--text);
+      font-weight: 500;
+      background: var(--surface);
+    }
+
+    td { color: var(--text-secondary); }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .sidebar {
+        position: static;
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        padding: 1rem;
+      }
+
+      .sidebar nav { flex-direction: row; flex-wrap: wrap; gap: 0.25rem; }
+
+      .main {
+        margin-left: 0;
+        padding: 2rem 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <a href="/" class="logo">⚡ ThoughtLayer</a>
+    <nav>
+            <a href="/docs/getting-started.html" class="active">Getting Started</a>
+            <a href="/docs/API.html">API Reference</a>
+            <a href="/docs/ARCHITECTURE.html">Architecture</a>
+            <a href="/docs/MCP.html">MCP Server</a>
+            <a href="/docs/AGENT_INTEGRATION.html">Agent Integration</a>
+    </nav>
+    <div class="back-link">
+      <a href="/">← Back to home</a><br>
+      <a href="https://github.com/prasants/thoughtlayer">GitHub</a> ·
+      <a href="https://www.npmjs.com/package/thoughtlayer">npm</a>
+    </div>
+  </aside>
+  <main class="main">
+    <h1 id="getting-started">Getting Started</h1>
+<h2 id="install">Install</h2>
+<pre><code class="language-bash">npm install -g thoughtlayer</code></pre>
+<h2 id="initialise-a-project">Initialise a project</h2>
+<pre><code class="language-bash">cd your-project
+thoughtlayer init</code></pre>
+<p>This creates a <code>.thoughtlayer/</code> directory with a SQLite database and config.</p>
+<p><strong>No API keys needed.</strong> ThoughtLayer works out of the box with a hybrid keyword search engine (92.5% Recall@1 on our benchmark). Embeddings are optional: add Ollama or OpenAI later for semantic search.</p>
+<h2 id="add-knowledge">Add knowledge</h2>
+<h3 id="from-files-recommended">From files (recommended)</h3>
+<pre><code class="language-bash"># Ingest a directory of markdown/text files
+thoughtlayer ingest ./docs
+
+# Watch for changes
+thoughtlayer ingest ./docs --watch</code></pre>
+<p>Files are tracked by content hash. Re-running <code>ingest</code> only processes changed files.</p>
+<h3 id="manual-entries">Manual entries</h3>
+<pre><code class="language-bash">thoughtlayer add "PostgreSQL chosen for pgvector support" --domain architecture --importance 0.9</code></pre>
+<h3 id="llm-powered-curate">LLM-powered curate</h3>
+<pre><code class="language-bash">echo "We decided to use Hono because..." | thoughtlayer curate -</code></pre>
+<p>Requires <code>ANTHROPIC_API_KEY</code> or <code>OPENAI_API_KEY</code>. The LLM extracts structured knowledge from raw text.</p>
+<h2 id="query">Query</h2>
+<pre><code class="language-bash"># Semantic + keyword search (hybrid)
+thoughtlayer query "how do we handle auth?"
+
+# Keyword-only (no API key needed)
+thoughtlayer search "authentication jwt"</code></pre>
+<h2 id="check-status">Check status</h2>
+<pre><code class="language-bash">thoughtlayer health    # Knowledge health metrics
+thoughtlayer status    # Ingestion status, tracked files
+thoughtlayer list      # List entries</code></pre>
+<h2 id="use-as-mcp-server">Use as MCP server</h2>
+<pre><code class="language-bash">thoughtlayer-mcp</code></pre>
+<p>Exposes ThoughtLayer as a <a href="https://modelcontextprotocol.io">Model Context Protocol</a> server. Any MCP-compatible client (Claude Desktop, Cursor, etc.) can query your knowledge base.</p>
+<h2 id="local-embeddings-ollama">Local embeddings (Ollama)</h2>
+<p>For fully offline operation:</p>
+<pre><code class="language-bash"># Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Pull the embedding model
+ollama pull nomic-embed-text
+
+# Initialise with Ollama
+thoughtlayer init --embedding-provider ollama</code></pre>
+<p>ThoughtLayer auto-detects Ollama on <code>localhost:11434</code>. Set <code>OLLAMA_HOST</code> to override.</p>
+<h2 id="programmatic-api">Programmatic API</h2>
+<pre><code class="language-typescript">import { ThoughtLayer } from 'thoughtlayer';
+
+const tl = ThoughtLayer.load('.');
+
+// Add knowledge
+await tl.add({
+  domain: 'architecture',
+  title: 'Database choice',
+  content: 'PostgreSQL with pgvector for embeddings',
+  importance: 0.9,
+});
+
+// Query
+const results = await tl.query('what database do we use?');
+console.log(results[0].entry.title); // "Database choice"
+
+tl.close();</code></pre>
+<h2 id="embedding-compression">Embedding Compression</h2>
+<p>Once you have entries with embeddings, you can compress them for ~4x storage savings:</p>
+<pre><code class="language-bash"># See current storage usage
+thoughtlayer health
+
+# Benchmark before compressing
+thoughtlayer benchmark
+
+# Compress embeddings (Int8 scalar quantisation)
+thoughtlayer compress
+
+# Verify no recall impact
+thoughtlayer benchmark</code></pre>
+<p>Compression is reversible: <code>thoughtlayer compress --codec raw</code> restores full precision.</p>
+  </main>
+</body>
+</html>
