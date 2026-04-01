@@ -10,7 +10,7 @@
     "thoughtlayer-mcp": "dist/mcp/server.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "npx tsc",
     "dev": "tsx watch src/cli/index.ts",
     "test": "vitest",
     "benchmark": "tsx benchmarks/run.ts",
