@@ -306,8 +306,8 @@ Tested in production on a workspace with 1,160 entries, 24,824 auto-extracted re
 | `thoughtlayer list` | List entries |
 | `thoughtlayer status` | Ingestion status |
 | `thoughtlayer health` | Health metrics |
-| `thoughtlayer compress` | Compress embeddings (~4x smaller) |
-| `thoughtlayer benchmark` | Benchmark codec impact on recall, storage, latency |
+| `thoughtlayer compress` | Compress embeddings (4x, 15x, or 32x) |
+| `thoughtlayer benchmark` | Compare all codecs: storage, recall, and latency |
 
 ## Configuration
 
@@ -343,21 +343,31 @@ your-project/
 
 ### Embedding Compression
 
-Embeddings are the largest part of the database. Int8 scalar quantisation compresses them ~4x with negligible recall impact.
+Embeddings are the largest component of the database. ThoughtLayer ships four codecs, each offering a distinct trade-off between storage, retrieval quality, and decode speed.
+
+```
+Codec     Compression   Top-10 Overlap   Cosine Drift   Best For
+-----     -----------   --------------   ------------   --------
+raw       1x            10/10            0              Baseline, debugging
+int8      ~4x           9+/10            < 0.005        Default, production
+polar     ~15x          6+/10            < 0.01         Large corpora, cost-sensitive
+binary    ~32x          4+/10            ~0.3           Coarse filtering, massive scale
+```
 
 ```bash
-# Benchmark before compressing
+# Compare all codecs against your data
 thoughtlayer benchmark
 
-# Compress (raw Float32 → Int8, ~4x smaller)
-thoughtlayer compress
+# Compress to your chosen codec
+thoughtlayer compress --codec int8    # safe default
+thoughtlayer compress --codec polar   # aggressive, TurboQuant-inspired
+thoughtlayer compress --codec binary  # extreme, coarse retrieval only
 
-# Benchmark after to verify
-thoughtlayer benchmark
+# Reverse any compression
+thoughtlayer compress --codec raw
 ```
 
-New projects use Int8 by default. Existing projects can compress in-place. Reversible: `thoughtlayer compress --codec raw` restores full precision.
-```
+New projects use Int8 by default. Existing projects can compress in-place with `thoughtlayer compress`. All compression is reversible: `--codec raw` restores full-precision floats (though lossy codecs return their quantised approximation, not the original values).
 
 ## Documentation
 
