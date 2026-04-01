@@ -13,7 +13,7 @@
  */
 
 import type { ThoughtLayerDatabase, KnowledgeEntry } from '../storage/database.js';
-import { vectorSearch, type VectorResult } from './vector.js';
+import { vectorSearch, VectorIndex, type VectorResult } from './vector.js';
 import { detectIntent, type IntentResult } from './intent.js';
 import { parseTemporalRefs, temporalBoost, type TemporalParseResult } from './temporal.js';
 import { resolveEntities, type EntityMatch } from './entity.js';
@@ -45,6 +45,8 @@ export interface RetrievalOptions {
   tags?: string[];
   topK?: number;
   freshnessHalfLifeDays?: number;
+  /** Domain-specific freshness half-life overrides (days). E.g., { incidents: 7, architecture: 90 } */
+  domainFreshnessHalfLife?: Record<string, number>;
   weights?: {
     rrf?: number;
     freshness?: number;
@@ -58,6 +60,34 @@ const DEFAULT_WEIGHTS = {
   freshness: 0.05,
   importance: 0.20,
 };
+
+// Shared vector index cache — one per database instance
+const vectorIndexCache = new WeakMap<ThoughtLayerDatabase, VectorIndex>();
+
+/**
+ * Get or build the in-memory vector index for a database.
+ * Reuses existing index on subsequent queries for cache-friendly performance.
+ */
+function getVectorIndex(db: ThoughtLayerDatabase): VectorIndex {
+  let index = vectorIndexCache.get(db);
+  if (!index) {
+    index = new VectorIndex();
+    vectorIndexCache.set(db, index);
+  }
+  if (index.needsRebuild || index.size === 0) {
+    const allEmbeddings = db.getAllEmbeddings();
+    index.build(allEmbeddings);
+  }
+  return index;
+}
+
+/**
+ * Invalidate the vector index for a database (call after writes).
+ */
+export function invalidateVectorIndex(db: ThoughtLayerDatabase): void {
+  const index = vectorIndexCache.get(db);
+  if (index) index.invalidate();
+}
 
 /**
  * Reciprocal Rank Fusion
@@ -170,12 +200,14 @@ export function retrieve(
   const vectorScores = new Map<string, number>();
   const ftsScores = new Map<string, number>();
 
-  // 1. Vector search
+  // 1. Vector search (uses in-memory index for cache-friendly performance)
   const VECTOR_MIN_THRESHOLD = 0.35;
-  
+
   if (options.queryEmbedding) {
-    const allEmbeddings = db.getAllEmbeddings();
-    const results = vectorSearch(options.queryEmbedding, allEmbeddings, candidatePool);
+    const index = getVectorIndex(db);
+    const results = index.size > 0
+      ? index.search(options.queryEmbedding, candidatePool)
+      : [];
 
     for (const r of results) {
       if (r.score >= VECTOR_MIN_THRESHOLD) {
@@ -268,9 +300,9 @@ export function retrieve(
     rankedLists.push(entityScores);
   }
 
-  // 5. Reciprocal Rank Fusion
+  // 5. Reciprocal Rank Fusion (skip normalisation here — final scores are normalised at the end)
   const rrfScores = rankedLists.length > 0
-    ? normalise(reciprocalRankFusion(rankedLists))
+    ? reciprocalRankFusion(rankedLists)
     : new Map<string, number>();
 
   // 7. Graph boost: find entries connected to query entities via knowledge graph
@@ -305,7 +337,9 @@ export function retrieve(
       if (!hasTag) continue;
     }
 
-    const fresh = freshnessScore(entry.freshness_at, halfLife);
+    // Domain-specific freshness half-life
+    const domainHalfLife = options.domainFreshnessHalfLife?.[entry.domain] ?? halfLife;
+    const fresh = freshnessScore(entry.freshness_at, domainHalfLife);
     const rrf = rrfScores.get(id) ?? 0;
 
     // BM25 dominance: if this entry's FTS score is much higher than average,
@@ -374,7 +408,6 @@ export function retrieve(
       entityMatch: entityMatchMap.get(id),
     });
 
-    db.recordAccess(id);
   }
 
   // Normalise scores to [0, 1] by dividing by max score
@@ -399,5 +432,12 @@ export function retrieve(
     results.sort((a, b) => b.score - a.score);
   }
 
-  return results.slice(0, topK);
+  const finalResults = results.slice(0, topK);
+
+  // Record access only for entries actually returned to the caller
+  for (const r of finalResults) {
+    db.recordAccess(r.entry.id);
+  }
+
+  return finalResults;
 }

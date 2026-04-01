@@ -14,7 +14,7 @@ import type { ThoughtLayerDatabase } from '../storage/database.js';
 export function extractQueryEntities(query: string): string[] {
   const entities: string[] = [];
 
-  // Multi-word proper nouns (e.g. "John Smith", "Acme Corp")
+  // Multi-word proper nouns (e.g. "John Smith", "Acme Corp") — case-insensitive
   const multiWord = query.match(/\b([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)+)\b/g);
   if (multiWord) {
     for (const m of multiWord) {
@@ -23,25 +23,47 @@ export function extractQueryEntities(query: string): string[] {
   }
 
   // Single capitalised words (not at sentence start, not common words)
-  const skipWords = new Set([
-    'I', 'The', 'A', 'An', 'This', 'That', 'What', 'Who', 'Where',
-    'When', 'How', 'Why', 'Which', 'My', 'Our', 'Your', 'His', 'Her',
-    'Their', 'Its', 'Is', 'Are', 'Was', 'Were', 'Do', 'Does', 'Did',
-    'Has', 'Have', 'Had', 'Will', 'Would', 'Could', 'Should', 'May',
-    'Can', 'Tell', 'Find', 'Show', 'Get', 'Give', 'Let', 'If', 'But',
-    'And', 'Or', 'Not', 'So', 'Yet', 'For', 'With', 'About',
+  const skipWordsLower = new Set([
+    'i', 'the', 'a', 'an', 'this', 'that', 'what', 'who', 'where',
+    'when', 'how', 'why', 'which', 'my', 'our', 'your', 'his', 'her',
+    'their', 'its', 'is', 'are', 'was', 'were', 'do', 'does', 'did',
+    'has', 'have', 'had', 'will', 'would', 'could', 'should', 'may',
+    'can', 'tell', 'find', 'show', 'get', 'give', 'let', 'if', 'but',
+    'and', 'or', 'not', 'so', 'yet', 'for', 'with', 'about',
   ]);
 
   const words = query.split(/\s+/);
   for (let i = 0; i < words.length; i++) {
     const word = words[i].replace(/[^A-Za-z]/g, '');
-    if (word.length >= 2 && /^[A-Z][a-z]+$/.test(word) && !skipWords.has(word)) {
+    if (word.length >= 2 && /^[A-Z][a-z]+$/.test(word) && !skipWordsLower.has(word.toLowerCase())) {
       // Check it's not already part of a multi-word entity
       const alreadyCovered = entities.some(e =>
         e.toLowerCase().includes(word.toLowerCase())
       );
       if (!alreadyCovered) {
         entities.push(word);
+      }
+    }
+  }
+
+  // Also try lowercase entity extraction for queries that look like people queries
+  // e.g. "who is john smith" — extract potential entity names from non-stopword sequences
+  // Only activate when the query contains people-indicating keywords
+  if (entities.length === 0) {
+    const peopleIndicators = /\b(who|person|team|people|member|engineer|manager|lead|director|contact|reports?\s+to)\b/i;
+    if (peopleIndicators.test(query)) {
+      const lowerWords = query.toLowerCase().split(/\s+/).map(w => w.replace(/[^a-z]/g, '')).filter(w => w.length >= 2);
+      const nonStop = lowerWords.filter(w => !skipWordsLower.has(w) && !peopleIndicators.test(w));
+      // Try consecutive non-stopword pairs as potential entity names
+      for (let i = 0; i < nonStop.length - 1; i++) {
+        const pair = nonStop[i] + ' ' + nonStop[i + 1];
+        entities.push(pair);
+      }
+      // Also add individual non-stopwords as potential single-word entities (length >= 4 to reduce noise)
+      for (const w of nonStop) {
+        if (w.length >= 4 && !entities.some(e => e.includes(w))) {
+          entities.push(w);
+        }
       }
     }
   }

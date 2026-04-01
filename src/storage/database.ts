@@ -11,6 +11,7 @@ import { v7 as uuidv7 } from 'uuid';
 import path from 'path';
 import fs from 'fs';
 import { CREATE_TABLES, SCHEMA_VERSION } from './schema.js';
+import { runMigrations } from './migrations.js';
 import { EmbeddingCodec, RawCodec, Int8Codec, getCodec } from '../retrieve/codec.js';
 
 export interface KnowledgeEntry {
@@ -102,6 +103,9 @@ export class ThoughtLayerDatabase {
     // Initialise schema
     this.db.exec(CREATE_TABLES);
     this.setSchemaVersion();
+
+    // Run pending migrations
+    runMigrations(this.db);
 
     // Resolve embedding codec
     const storedCodec = this.getConfigValue('embedding_codec');
@@ -358,8 +362,10 @@ export class ThoughtLayerDatabase {
     // 2. OR query (any term can match): high recall
     // AND matches get a significant rank boost.
 
-    const andQuery = terms.join(' AND ');
-    const orQuery = terms.join(' OR ');
+    // Escape FTS5 special tokens by double-quoting each term
+    const escaped = terms.map(t => '"' + t.replace(/"/g, '""') + '"');
+    const andQuery = escaped.join(' AND ');
+    const orQuery = escaped.join(' OR ');
 
     const resultMap = new Map<string, { entry: KnowledgeEntry & { rank: number } }>();
 
@@ -605,6 +611,71 @@ export class ThoughtLayerDatabase {
     this.db.close();
   }
 
+  // --- Persistent embedding cache ---
+
+  /**
+   * Look up an embedding in the persistent cache.
+   */
+  getCachedEmbedding(textHash: string, model: string): Float32Array | null {
+    const row = this.db.prepare(
+      'SELECT embedding, codec FROM embedding_cache WHERE text_hash = ? AND model = ?'
+    ).get(textHash, model) as any;
+
+    if (!row) return null;
+
+    // Update last_used_at for LRU tracking
+    this.db.prepare(
+      "UPDATE embedding_cache SET last_used_at = datetime('now') WHERE text_hash = ? AND model = ?"
+    ).run(textHash, model);
+
+    const rowCodec = getCodec(row.codec ?? 'raw');
+    return rowCodec.decode(row.embedding);
+  }
+
+  /**
+   * Store an embedding in the persistent cache.
+   */
+  setCachedEmbedding(textHash: string, model: string, embedding: Float32Array): void {
+    const buffer = this.codec.encode(embedding);
+    this.db.prepare(`
+      INSERT OR REPLACE INTO embedding_cache (text_hash, model, embedding, codec, created_at, last_used_at)
+      VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run(textHash, model, buffer, this.codec.name);
+  }
+
+  /**
+   * Get embedding cache statistics.
+   */
+  embeddingCacheStats(): { count: number; totalBytes: number } {
+    const row = this.db.prepare(
+      'SELECT COUNT(*) as count, COALESCE(SUM(LENGTH(embedding)), 0) as totalBytes FROM embedding_cache'
+    ).get() as any;
+    return { count: row.count, totalBytes: row.totalBytes };
+  }
+
+  /**
+   * Evict oldest entries from the persistent embedding cache.
+   */
+  evictEmbeddingCache(maxEntries: number = 50000): number {
+    const count = (this.db.prepare('SELECT COUNT(*) as c FROM embedding_cache').get() as any).c;
+    if (count <= maxEntries) return 0;
+
+    const toEvict = count - maxEntries;
+    this.db.prepare(`
+      DELETE FROM embedding_cache WHERE rowid IN (
+        SELECT rowid FROM embedding_cache ORDER BY last_used_at ASC LIMIT ?
+      )
+    `).run(toEvict);
+    return toEvict;
+  }
+
+  /**
+   * Clear the persistent embedding cache.
+   */
+  clearEmbeddingCache(): void {
+    this.db.prepare('DELETE FROM embedding_cache').run();
+  }
+
   // --- File ingestion tracking ---
 
   /**
@@ -649,7 +720,7 @@ export class ThoughtLayerDatabase {
   storeRelationship(entryId: string, subject: string, predicate: string, object: string, confidence: number): void {
     const id = uuidv7();
     this.db.prepare(`
-      INSERT INTO relationships (id, entry_id, subject, predicate, object, confidence)
+      INSERT OR IGNORE INTO relationships (id, entry_id, subject, predicate, object, confidence)
       VALUES (?, ?, ?, ?, ?, ?)
     `).run(id, entryId, subject, predicate, object, confidence);
   }
@@ -678,29 +749,40 @@ export class ThoughtLayerDatabase {
    */
   traverseGraph(entityName: string, hops: number = 2): Map<string, number> {
     const visited = new Map<string, number>(); // entryId -> best score
+    const visitedEntities = new Set<string>(); // cycle detection
     let frontier = new Set<string>([entityName.toLowerCase()]);
+    visitedEntities.add(entityName.toLowerCase());
 
     for (let hop = 0; hop < hops && frontier.size > 0; hop++) {
       const decay = 1 / (hop + 1); // 1.0 for hop 0, 0.5 for hop 1, etc.
       const nextFrontier = new Set<string>();
 
-      for (const entity of frontier) {
-        const rels = this.db.prepare(
-          'SELECT entry_id, subject, predicate, object, confidence FROM relationships WHERE subject = ? COLLATE NOCASE OR object = ? COLLATE NOCASE'
-        ).all(entity, entity) as Array<{ entry_id: string; subject: string; predicate: string; object: string; confidence: number }>;
+      // Batch query: fetch all relationships for entire frontier at once
+      const frontierArray = [...frontier];
+      const placeholders = frontierArray.map(() => '?').join(',');
+      const params = [...frontierArray, ...frontierArray]; // for subject IN (...) OR object IN (...)
 
-        for (const rel of rels) {
-          const score = rel.confidence * decay;
-          const existing = visited.get(rel.entry_id) ?? 0;
-          if (score > existing) {
-            visited.set(rel.entry_id, score);
-          }
+      const rels = this.db.prepare(`
+        SELECT entry_id, subject, predicate, object, confidence
+        FROM relationships
+        WHERE LOWER(subject) IN (${placeholders})
+           OR LOWER(object) IN (${placeholders})
+      `).all(...params) as Array<{ entry_id: string; subject: string; predicate: string; object: string; confidence: number }>;
 
-          // Add the other side of the relationship to the next frontier
-          const other = rel.subject.toLowerCase() === entity ? rel.object.toLowerCase() : rel.subject.toLowerCase();
-          if (!frontier.has(other)) {
-            nextFrontier.add(other);
-          }
+      for (const rel of rels) {
+        const score = rel.confidence * decay;
+        const existing = visited.get(rel.entry_id) ?? 0;
+        if (score > existing) {
+          visited.set(rel.entry_id, score);
+        }
+
+        // Add the other side of the relationship to the next frontier (with cycle detection)
+        const subjectLower = rel.subject.toLowerCase();
+        const objectLower = rel.object.toLowerCase();
+        const other = frontier.has(subjectLower) ? objectLower : subjectLower;
+        if (!visitedEntities.has(other)) {
+          visitedEntities.add(other);
+          nextFrontier.add(other);
         }
       }
 
@@ -708,6 +790,51 @@ export class ThoughtLayerDatabase {
     }
 
     return visited;
+  }
+
+  // --- Database maintenance ---
+
+  /**
+   * Run database optimisation: PRAGMA optimize, FTS5 optimize, VACUUM.
+   * Safe to call periodically (e.g., after bulk ingestion or daily).
+   */
+  optimize(): { optimized: boolean; message: string } {
+    try {
+      this.db.pragma('optimize');
+      this.db.exec("INSERT INTO entries_fts(entries_fts) VALUES('optimize')");
+      this.db.exec('VACUUM');
+      return { optimized: true, message: 'Database optimised: PRAGMA optimize, FTS5 optimize, VACUUM' };
+    } catch (err) {
+      return { optimized: false, message: `Optimisation failed: ${err}` };
+    }
+  }
+
+  /**
+   * Get raw database instance for advanced operations.
+   * Use with caution — direct access bypasses all abstractions.
+   */
+  get rawDb(): any { return this.db; }
+
+  // --- File ingestion tracking (content-hash aware) ---
+
+  /**
+   * Find an ingested file by content hash (detects moved files).
+   */
+  findIngestedByHash(contentHash: string): { file_path: string; entry_id: string; mtime_ms: number } | null {
+    const row = this.db.prepare(
+      'SELECT file_path, entry_id, mtime_ms FROM ingested_files WHERE content_hash = ? LIMIT 1'
+    ).get(contentHash) as any;
+    return row ?? null;
+  }
+
+  /**
+   * Update the tracked path for a moved file (same content hash, new path).
+   */
+  updateIngestedFilePath(oldPath: string, newPath: string): boolean {
+    const result = this.db.prepare(
+      "UPDATE ingested_files SET file_path = ?, updated_at = datetime('now') WHERE file_path = ?"
+    ).run(newPath, oldPath);
+    return result.changes > 0;
   }
 
   // --- Private helpers ---

@@ -6,6 +6,7 @@
  */
 
 import type { ThoughtLayerDatabase, KnowledgeEntry, CreateEntryInput, Relation } from '../storage/database.js';
+import { cosineSimilarity } from './vector.js';
 
 export interface ConflictInfo {
   currentEntry: KnowledgeEntry;
@@ -24,9 +25,17 @@ export interface ContradictionCheck {
  * Check if a new entry potentially contradicts an existing one.
  * Uses topic + title similarity to find candidates, then checks for factual overlap.
  */
+/**
+ * Check if a new entry potentially contradicts an existing one.
+ * Uses topic + title similarity (Jaccard or embedding cosine) to find candidates,
+ * then checks for factual overlap.
+ *
+ * @param newEmbedding - Optional embedding of the new entry for semantic matching
+ */
 export function checkContradiction(
   db: ThoughtLayerDatabase,
-  newEntry: CreateEntryInput
+  newEntry: CreateEntryInput,
+  newEmbedding?: Float32Array
 ): ContradictionCheck {
   // Find entries with same domain+topic
   const candidates = db.list({
@@ -44,14 +53,40 @@ export function checkContradiction(
   const newFactSet = new Set((newEntry.facts ?? []).map(f => normalise(f)));
 
   for (const candidate of candidates) {
-    // Title similarity
-    const candTitleNorm = normalise(candidate.title);
-    const titleSim = jaccardSimilarity(
-      new Set(newTitleNorm.split(/\s+/)),
-      new Set(candTitleNorm.split(/\s+/))
-    );
+    // Title similarity — try embedding cosine first, fall back to Jaccard
+    let titleSim: number;
 
-    if (titleSim < 0.3) continue;
+    if (newEmbedding) {
+      // Semantic similarity via embeddings (more accurate for differently worded titles)
+      const candEmbedding = db.getEmbedding(candidate.id);
+      if (candEmbedding) {
+        try {
+          titleSim = cosineSimilarity(newEmbedding, candEmbedding.embedding);
+          // Cosine sim > 0.85 is considered semantically similar
+          if (titleSim < 0.7) continue;
+        } catch {
+          // Dimension mismatch: fall back to Jaccard
+          titleSim = jaccardSimilarity(
+            new Set(newTitleNorm.split(/\s+/)),
+            new Set(normalise(candidate.title).split(/\s+/))
+          );
+          if (titleSim < 0.3) continue;
+        }
+      } else {
+        titleSim = jaccardSimilarity(
+          new Set(newTitleNorm.split(/\s+/)),
+          new Set(normalise(candidate.title).split(/\s+/))
+        );
+        if (titleSim < 0.3) continue;
+      }
+    } else {
+      // Jaccard fallback when embeddings unavailable
+      titleSim = jaccardSimilarity(
+        new Set(newTitleNorm.split(/\s+/)),
+        new Set(normalise(candidate.title).split(/\s+/))
+      );
+      if (titleSim < 0.3) continue;
+    }
 
     // Check for contradicting facts
     const candFactSet = new Set(candidate.facts.map(f => normalise(f)));

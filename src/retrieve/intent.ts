@@ -19,6 +19,7 @@ export type QueryIntent =
 export interface IntentResult {
   intent: QueryIntent;
   confidence: number;
+  secondaryIntent?: QueryIntent;         // secondary intent for compound queries
   domainBoosts: Record<string, number>;  // domain -> multiplier
   freshnessBoost: number;                // multiplier for freshness weight
   recencySort: boolean;                  // whether to sort by recency
@@ -83,24 +84,78 @@ const RECENCY_SORT: Set<QueryIntent> = new Set(['when', 'what_happened', 'decisi
 
 /**
  * Detect query intent from natural language.
- * Returns the highest-confidence match.
+ * Supports multi-intent detection for compound queries like "latest decision on auth".
+ * Returns highest-confidence match with optional secondary intent.
  */
 export function detectIntent(query: string): IntentResult {
-  let bestIntent: QueryIntent = 'general';
-  let bestConfidence = 0;
+  // Collect all matching intents with their best confidence
+  const matches = new Map<QueryIntent, number>();
 
   for (const { pattern, intent, confidence } of PATTERNS) {
-    if (pattern.test(query) && confidence > bestConfidence) {
-      bestIntent = intent;
-      bestConfidence = confidence;
+    if (pattern.test(query)) {
+      const existing = matches.get(intent) ?? 0;
+      if (confidence > existing) {
+        matches.set(intent, confidence);
+      }
     }
   }
 
+  // Check for negation: suppress freshness boost if query negates recency
+  const hasNegation = /\b(not\s+recent|not\s+latest|older|earliest|oldest|first|original)\b/i.test(query);
+
+  if (matches.size === 0) {
+    return {
+      intent: 'general',
+      confidence: 0,
+      domainBoosts: {},
+      freshnessBoost: hasNegation ? 0.3 : 1.0,
+      recencySort: false,
+    };
+  }
+
+  // Sort intents by confidence, pick top 2
+  const sorted = [...matches.entries()].sort((a, b) => b[1] - a[1]);
+  const [primaryIntent, primaryConfidence] = sorted[0];
+
+  let secondaryIntent: QueryIntent | undefined;
+  let combinedDomainBoosts: Record<string, number> = { ...(DOMAIN_BOOSTS[primaryIntent] ?? {}) };
+  let combinedFreshnessBoost = FRESHNESS_BOOSTS[primaryIntent] ?? 1.0;
+  let combinedRecencySort = RECENCY_SORT.has(primaryIntent);
+
+  // Multi-intent: if second intent has confidence >= 0.5 and is different
+  if (sorted.length >= 2 && sorted[1][1] >= 0.5) {
+    const [secIntent, secConfidence] = sorted[1];
+    secondaryIntent = secIntent;
+
+    // Merge domain boosts from both intents
+    const secBoosts = DOMAIN_BOOSTS[secIntent] ?? {};
+    for (const [domain, boost] of Object.entries(secBoosts)) {
+      combinedDomainBoosts[domain] = Math.max(combinedDomainBoosts[domain] ?? 1, boost);
+    }
+
+    // Combine freshness boosts: use max, capped at primary * 1.5
+    const secFreshnessBoost = FRESHNESS_BOOSTS[secIntent] ?? 1.0;
+    combinedFreshnessBoost = Math.min(
+      Math.max(combinedFreshnessBoost, secFreshnessBoost),
+      combinedFreshnessBoost * 1.5
+    );
+
+    // Recency sort if either intent wants it
+    combinedRecencySort = combinedRecencySort || RECENCY_SORT.has(secIntent);
+  }
+
+  // Apply negation override
+  if (hasNegation) {
+    combinedFreshnessBoost = Math.min(combinedFreshnessBoost, 0.3);
+    combinedRecencySort = false;
+  }
+
   return {
-    intent: bestIntent,
-    confidence: bestConfidence,
-    domainBoosts: DOMAIN_BOOSTS[bestIntent] ?? {},
-    freshnessBoost: FRESHNESS_BOOSTS[bestIntent] ?? 1.0,
-    recencySort: RECENCY_SORT.has(bestIntent),
+    intent: primaryIntent,
+    confidence: primaryConfidence,
+    secondaryIntent,
+    domainBoosts: combinedDomainBoosts,
+    freshnessBoost: combinedFreshnessBoost,
+    recencySort: combinedRecencySort,
   };
 }

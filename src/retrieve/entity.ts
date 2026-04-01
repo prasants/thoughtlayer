@@ -56,23 +56,38 @@ function extractNames(entry: KnowledgeEntry): Array<{ full: string; first: strin
     entry.tags.some(t => ['people', 'team', 'person', 'leadership', 'staff'].includes(t));
 
   // Extract names from title (common pattern: "Name: role" or "Name - role")
-  const titleMatch = entry.title.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/);
+  // Case-insensitive: normalise to lowercase first, then match word patterns
+  const titleLower = entry.title.toLowerCase();
+  const titleMatch = titleLower.match(/^([a-z][a-z]+(?:\s+[a-z][a-z]+)+)/);
   if (titleMatch) {
     const parts = titleMatch[1].split(/\s+/);
     names.push({
-      full: titleMatch[1].toLowerCase(),
-      first: parts[0].toLowerCase(),
-      last: parts[parts.length - 1].toLowerCase(),
+      full: titleMatch[1],
+      first: parts[0],
+      last: parts[parts.length - 1],
     });
+  }
+
+  // For people-domain entries, also try single-word name extraction from title
+  if (isPeopleEntry && names.length === 0) {
+    const singleNameMatch = titleLower.match(/^([a-z]{2,})/);
+    if (singleNameMatch) {
+      const name = singleNameMatch[1];
+      names.push({
+        full: name,
+        first: name,
+        last: name,
+      });
+    }
   }
 
   // Only extract names from content if this is a people-domain entry
   if (!isPeopleEntry) return names;
 
-  // Also extract from structured attribution patterns in content
+  // Also extract from structured attribution patterns in content (case-insensitive)
   const structuredPatterns = [
-    /(?:Decided by|Author|Owner|Lead|Manager|Created by|Assigned to|Contact):\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/g,
-    /^(?:##?\s+)?Team\b.*?:\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/gm,
+    /(?:Decided by|Author|Owner|Lead|Manager|Created by|Assigned to|Contact):\s*([A-Za-z][a-z]+(?:\s+[A-Za-z][a-z]+)+)/gi,
+    /^(?:##?\s+)?Team\b.*?:\s*([A-Za-z][a-z]+(?:\s+[A-Za-z][a-z]+)+)/gim,
   ];
 
   for (const pattern of structuredPatterns) {
@@ -100,6 +115,7 @@ function extractNames(entry: KnowledgeEntry): Array<{ full: string; first: strin
     'next', 'best', 'good', 'high', 'low', 'full', 'long', 'late',
     'early', 'first', 'second', 'third', 'current', 'recent',
   ]);
+  // Match capitalised name patterns (original) plus Title Case patterns in content
   const contentNamePattern = /\b([A-Z][a-z]+\s+[A-Z][a-z]+)\b/g;
   let m;
   while ((m = contentNamePattern.exec(entry.content)) !== null) {

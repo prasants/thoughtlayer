@@ -64,7 +64,7 @@ Return ONLY a JSON array of objects with "idx" and "score" fields. No other text
 Example: [{"idx": 0, "score": 8}, {"idx": 1, "score": 3}]`;
 }
 
-function truncateContent(content: string, maxChars: number = 200): string {
+function truncateContent(content: string, maxChars: number = 500): string {
   if (content.length <= maxChars) return content;
   return content.substring(0, maxChars).replace(/\s+\S*$/, '') + '...';
 }
@@ -153,28 +153,42 @@ async function callOllama(
   return data.response || '';
 }
 
+// Provider fallback order for resilience
+const PROVIDER_FALLBACK_ORDER = ['openai', 'anthropic', 'openrouter', 'ollama'] as const;
+
 async function callLLM(prompt: string, config: RerankConfig): Promise<string> {
   const provider = config.provider || detectProvider(config);
 
-  switch (provider) {
-    case 'openai':
-    case 'openrouter':
-      return callOpenAI(prompt, {
-        ...config,
-        baseUrl: provider === 'openrouter'
-          ? 'https://openrouter.ai/api/v1'
-          : config.baseUrl,
-        apiKey: provider === 'openrouter'
-          ? (config.apiKey || process.env.OPENROUTER_API_KEY)
-          : config.apiKey,
-      });
-    case 'anthropic':
-      return callAnthropic(prompt, config);
-    case 'ollama':
-      return callOllama(prompt, config);
-    default:
-      throw new Error(`Unknown rerank provider: ${provider}`);
+  // Build fallback chain: try configured provider first, then others
+  const providers = [provider, ...PROVIDER_FALLBACK_ORDER.filter(p => p !== provider)];
+  let lastError: Error | null = null;
+
+  for (const p of providers) {
+    try {
+      switch (p) {
+        case 'openai':
+        case 'openrouter':
+          return await callOpenAI(prompt, {
+            ...config,
+            baseUrl: p === 'openrouter'
+              ? 'https://openrouter.ai/api/v1'
+              : config.baseUrl,
+            apiKey: p === 'openrouter'
+              ? (config.apiKey || process.env.OPENROUTER_API_KEY)
+              : config.apiKey,
+          });
+        case 'anthropic':
+          return await callAnthropic(prompt, config);
+        case 'ollama':
+          return await callOllama(prompt, config);
+      }
+    } catch (err: any) {
+      lastError = err;
+      // Continue to next provider in fallback chain
+    }
   }
+
+  throw lastError ?? new Error('All rerank providers failed');
 }
 
 function detectProvider(config: RerankConfig): string {

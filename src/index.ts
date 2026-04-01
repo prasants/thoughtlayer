@@ -48,3 +48,24 @@ export type { RerankConfig, RerankResult } from './retrieve/rerank.js';
 // Automatic memory extraction
 export { extract, extractHeuristic, extractWithLLM, learnFromConversation } from './ingest/auto-extract.js';
 export type { ExtractionResult, ExtractConfig } from './ingest/auto-extract.js';
+
+// Vector index
+export { VectorIndex } from './retrieve/vector.js';
+
+// Plugin system
+export { PluginRegistry } from './plugins.js';
+export type { ThoughtLayerPlugin } from './plugins.js';
+
+// Error types
+export {
+  ThoughtLayerError, EmbeddingError, StorageError,
+  QueryError, ConfigError, RerankError, CodecError,
+} from './errors.js';
+
+// Structured logging
+export { createLogger, configureLogger } from './logger.js';
+export type { LogLevel, LoggerConfig } from './logger.js';
+
+// Schema migrations
+export { runMigrations } from './storage/migrations.js';
+export type { Migration } from './storage/migrations.js';

@@ -1,66 +1,142 @@
 {
-  "timestamp": "2026-03-20T07:40:56.943Z",
-  "mode": "offline",
+  "timestamp": "2026-04-01T07:38:13.715Z",
+  "mode": "full",
   "dataset": {
     "entries": 50,
-    "queries": 15
+    "queries": 160
   },
   "metrics": {
     "recall": {
-      "@1": 0.5666666666666667,
-      "@3": 0.7333333333333333,
-      "@5": 0.7666666666666667,
-      "@10": 0.7666666666666667
+      "@1": 0.74375,
+      "@3": 0.915625,
+      "@5": 0.940625,
+      "@10": 0.978125
     },
     "precision": {
-      "@1": 0.6666666666666666,
-      "@3": 0.28888888888888886,
-      "@5": 0.18666666666666665,
-      "@10": 0.09333333333333332
+      "@1": 0.8,
+      "@3": 0.3375000000000006,
+      "@5": 0.2087499999999996,
+      "@10": 0.10999999999999983
     },
-    "mrr": 0.7333333333333333,
+    "mrr": 0.8800148809523808,
     "latency": {
-      "p50": 18.060003999999935,
-      "p95": 39.012621999999965,
-      "mean": 18.279085266666673
+      "p50": 29.276416000000154,
+      "p95": 43.84391700000015,
+      "mean": 30.720847612499966
     }
   },
   "failures": [
     {
-      "queryId": "q-048",
-      "query": "Any concerns about relying on external services?",
+      "queryId": "q-046",
+      "query": "How do edge functions work in our stack?",
       "expected": [
-        "inc-010",
-        "arch-003"
+        "arch-002"
       ],
       "retrieved": [
+        "ppl-004",
+        "arch-008",
+        "ppl-002",
         "arch-002",
-        "ppl-001",
-        "arch-007",
-        "arch-009",
-        "prod-001"
+        "prod-007"
       ]
     },
     {
-      "queryId": "q-050",
-      "query": "What is our competitive advantage?",
+      "queryId": "q-064",
+      "query": "Error tracking setup",
       "expected": [
-        "prod-003"
+        "arch-010"
       ],
-      "retrieved": []
+      "retrieved": [
+        "inc-007",
+        "inc-005",
+        "inc-001",
+        "prod-006",
+        "ops-009"
+      ]
     },
     {
-      "queryId": "q-051",
-      "query": "Any issues with AI making mistakes?",
+      "queryId": "q-076",
+      "query": "Biggest line items in our cloud bill",
       "expected": [
-        "inc-003"
+        "ops-006"
+      ],
+      "retrieved": [
+        "prod-001",
+        "arch-010",
+        "ops-008",
+        "ops-006",
+        "arch-008"
+      ]
+    },
+    {
+      "queryId": "q-085",
+      "query": "How much does the Pro plan cost?",
+      "expected": [
+        "prod-001"
+      ],
+      "retrieved": [
+        "ops-006",
+        "ops-007",
+        "arch-008",
+        "prod-001",
+        "inc-009"
+      ]
+    },
+    {
+      "queryId": "q-088",
+      "query": "Who is our ideal customer?",
+      "expected": [
+        "prod-002"
+      ],
+      "retrieved": [
+        "ppl-007",
+        "ppl-001",
+        "ppl-006",
+        "arch-003",
+        "prod-005"
+      ]
+    },
+    {
+      "queryId": "q-092",
+      "query": "What are we building next quarter?",
+      "expected": [
+        "prod-004"
+      ],
+      "retrieved": [
+        "arch-004",
+        "prod-006",
+        "arch-009",
+        "inc-004",
+        "prod-009"
+      ]
+    },
+    {
+      "queryId": "q-151",
+      "query": "tech stack for the backend",
+      "expected": [
+        "arch-001",
+        "arch-002"
+      ],
+      "retrieved": [
+        "ppl-004",
+        "ppl-001",
+        "ppl-009",
+        "ppl-003",
+        "ppl-010"
+      ]
+    },
+    {
+      "queryId": "q-152",
+      "query": "payment processing issues",
+      "expected": [
+        "inc-002"
       ],
       "retrieved": [
         "ppl-003",
-        "prod-003",
-        "prod-006",
-        "ppl-005",
-        "arch-010"
+        "arch-010",
+        "ops-005",
+        "inc-005",
+        "arch-005"
       ]
     }
   ]

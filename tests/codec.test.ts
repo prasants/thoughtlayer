@@ -29,7 +29,7 @@ describe('Int8Codec', () => {
     const raw = Buffer.from(vec.buffer);
     const compressed = codec.encode(vec);
 
-    expect(compressed.length).toBe(8 + 768); // 776 bytes
+    expect(compressed.length).toBe(3 + 8 + 768); // 779 bytes (3 header + 8 min/max + 768 quantised)
     expect(raw.length).toBe(768 * 4); // 3072 bytes
     expect(compressed.length / raw.length).toBeLessThan(0.3);
   });
@@ -108,7 +108,7 @@ describe('Int8Codec', () => {
     for (let i = 0; i < 1536; i++) vec[i] = (Math.random() - 0.5) * 0.2;
 
     const compressed = codec.encode(vec);
-    expect(compressed.length).toBe(8 + 1536);
+    expect(compressed.length).toBe(3 + 8 + 1536); // 3 header + 8 min/max + 1536 quantised
 
     const decoded = codec.decode(compressed);
     const sim = cosineSimilarity(vec, decoded);

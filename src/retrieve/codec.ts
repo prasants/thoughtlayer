@@ -46,6 +46,11 @@ export class RawCodec implements EmbeddingCodec {
  * For typical normalised embeddings (range ~[-0.1, 0.1]), error < 0.0008 per dim.
  * Cosine similarity error is negligible at these magnitudes.
  */
+// Int8 codec magic bytes: 'TL' (0x54, 0x4C) + version byte
+const INT8_MAGIC = 0x544C;
+const INT8_VERSION = 1;
+const INT8_HEADER_SIZE = 3; // 2 magic + 1 version
+
 export class Int8Codec implements EmbeddingCodec {
   readonly name = 'int8';
 
@@ -60,17 +65,22 @@ export class Int8Codec implements EmbeddingCodec {
     }
 
     const range = max - min;
-    const buf = Buffer.alloc(8 + n);
+    const buf = Buffer.alloc(INT8_HEADER_SIZE + 8 + n);
 
-    buf.writeFloatLE(min, 0);
-    buf.writeFloatLE(max, 4);
+    // Magic number + version
+    buf.writeUInt16LE(INT8_MAGIC, 0);
+    buf[2] = INT8_VERSION;
+
+    // Min/max range header
+    buf.writeFloatLE(min, INT8_HEADER_SIZE);
+    buf.writeFloatLE(max, INT8_HEADER_SIZE + 4);
 
     if (range === 0) {
-      buf.fill(0, 8);
+      buf.fill(0, INT8_HEADER_SIZE + 8);
     } else {
       const scale = 255 / range;
       for (let i = 0; i < n; i++) {
-        buf[8 + i] = Math.round((vec[i] - min) * scale);
+        buf[INT8_HEADER_SIZE + 8 + i] = Math.round((vec[i] - min) * scale);
       }
     }
 
@@ -78,6 +88,42 @@ export class Int8Codec implements EmbeddingCodec {
   }
 
   decode(buf: Buffer): Float32Array {
+    if (buf.length < 3) {
+      throw new Error(`Int8Codec: buffer too small (${buf.length} bytes, minimum 3)`);
+    }
+
+    // Detect legacy format (no magic number) vs new format
+    const maybeMagic = buf.readUInt16LE(0);
+    if (maybeMagic === INT8_MAGIC) {
+      // New format with magic + version
+      const version = buf[2];
+      if (version !== INT8_VERSION) {
+        throw new Error(`Int8Codec: unsupported version ${version} (expected ${INT8_VERSION})`);
+      }
+      if (buf.length < INT8_HEADER_SIZE + 8) {
+        throw new Error(`Int8Codec: buffer too small for header (${buf.length} bytes, minimum ${INT8_HEADER_SIZE + 8})`);
+      }
+      const min = buf.readFloatLE(INT8_HEADER_SIZE);
+      const max = buf.readFloatLE(INT8_HEADER_SIZE + 4);
+      const n = buf.length - INT8_HEADER_SIZE - 8;
+      const range = max - min;
+      const vec = new Float32Array(n);
+
+      if (range === 0) {
+        vec.fill(min);
+      } else {
+        const scale = range / 255;
+        for (let i = 0; i < n; i++) {
+          vec[i] = min + buf[INT8_HEADER_SIZE + 8 + i] * scale;
+        }
+      }
+      return vec;
+    }
+
+    // Legacy format: [min: float32][max: float32][quantised: uint8 x N]
+    if (buf.length < 8) {
+      throw new Error(`Int8Codec: buffer too small for legacy format (${buf.length} bytes, minimum 8)`);
+    }
     const min = buf.readFloatLE(0);
     const max = buf.readFloatLE(4);
     const n = buf.length - 8;

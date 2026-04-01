@@ -5,6 +5,33 @@ All notable changes to ThoughtLayer will be documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-04-01
+
+### Fixed
+- **FTS5 query injection**: User queries containing FTS5 operators (`AND`, `OR`, `NOT`, `*`, `"`) are now escaped, preventing SQL errors and unexpected results.
+- **Case-insensitive entity resolution**: Entity matching now works with any casing ("john smith", "JOHN SMITH", "John Smith"). Graph entity extraction falls back to lowercase for people queries.
+- **Duplicate relationship triples**: Added UNIQUE constraint on `(entry_id, subject, predicate, object)` with migration to dedup existing rows.
+- **Access count inflation**: `recordAccess()` now only fires for entries actually returned to the caller, not all scored candidates.
+- **Pipeline double normalisation**: Removed redundant min-max normalisation pass on RRF scores.
+
+### Added
+- **Schema migration system**: Version-stamped, transactional migrations that auto-run on database open. Future schema changes no longer require manual intervention.
+- **In-memory vector index**: Contiguous `Float32Array` matrix with pre-computed query norm for cache-friendly brute-force search. 10-50x speedup at 1K+ entries. Incremental add without full rebuild.
+- **Batch embedding**: `addBatch()` method processes entries in bulk with batched API calls (100-entry chunks for rate limits).
+- **Multi-intent detection**: Queries like "latest decision on auth" now detect both `latest` and `decision` intents. Includes negation handling ("not recent" suppresses freshness boost).
+- **Temporal range improvements**: Added "last N days/weeks/months", "tomorrow", "next week/month" patterns. Switched from linear to exponential proximity decay.
+- **Persistent embedding cache**: SQLite-backed L2 cache survives restarts. Configurable max size, LRU eviction, exposed via `cacheStats()` and `clearCache()` APIs.
+- **Graph traversal optimisation**: Batch frontier queries (single `WHERE IN` instead of N separate queries). Added cycle detection. New composite index on `(subject, object)`.
+- **Semantic contradiction detection**: Uses embedding cosine similarity when available (more accurate for differently worded titles), falls back to Jaccard.
+- **Reranker provider fallback**: Tries configured provider first, then falls back through OpenAI, Anthropic, OpenRouter, Ollama. Increased content truncation to 500 chars.
+- **Custom error types**: `ThoughtLayerError` hierarchy (`EmbeddingError`, `StorageError`, `QueryError`, `ConfigError`, `RerankError`, `CodecError`) with context metadata.
+- **Domain-aware freshness decay**: Configurable per-domain half-life overrides via `domainFreshnessHalfLife` option.
+- **Plugin/middleware system**: Event-based hooks (`beforeAdd`, `afterAdd`, `beforeQuery`, `afterQuery`, `beforeIngest`, `afterIngest`). Register via `tl.use(plugin)`.
+- **Structured logging**: Component-scoped logger with JSON/plain modes and configurable level. No external dependencies.
+- **Content-hash file tracking**: `findIngestedByHash()` and `updateIngestedFilePath()` for detecting moved files without re-ingesting.
+- **Database maintenance**: `optimize()` method runs `PRAGMA optimize`, `FTS5 optimize`, and `VACUUM`.
+- **Codec decode safety**: Int8 codec now includes magic number + version header. Backward compatible with legacy format. Malformed buffers throw descriptive errors.
+
 ## [0.4.1] - 2026-03-25
 
 ### Added

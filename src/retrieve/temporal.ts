@@ -81,6 +81,18 @@ export function parseTemporalRefs(query: string, now: Date = new Date()): Tempor
     refs.push({ type: 'relative', label: 'this month', start, end: endOfDay(now) });
   }
 
+  // "last N days/weeks/months" — range pattern
+  const lastNMatch = q.match(/last\s+(\d+)\s+(day|week|month)s?/);
+  if (lastNMatch) {
+    const n = parseInt(lastNMatch[1]);
+    const unit = lastNMatch[2];
+    const start = new Date(now);
+    if (unit === 'day') start.setDate(start.getDate() - n);
+    else if (unit === 'week') start.setDate(start.getDate() - n * 7);
+    else if (unit === 'month') start.setMonth(start.getMonth() - n);
+    refs.push({ type: 'relative', label: `last ${n} ${unit}s`, start: startOfDay(start), end: endOfDay(now) });
+  }
+
   // "N days ago"
   const daysAgoMatch = q.match(/(\d+)\s+days?\s+ago/);
   if (daysAgoMatch) {
@@ -101,12 +113,45 @@ export function parseTemporalRefs(query: string, now: Date = new Date()): Tempor
     refs.push({ type: 'relative', label: `${n} weeks ago`, start: startOfDay(start), end: endOfDay(end) });
   }
 
-  // "in <month>" or "<month> <year>"
+  // "tomorrow"
+  if (/\btomorrow\b/.test(q)) {
+    const d = new Date(now);
+    d.setDate(d.getDate() + 1);
+    refs.push({ type: 'relative', label: 'tomorrow', start: startOfDay(d), end: endOfDay(d) });
+  }
+
+  // "next week"
+  if (/\bnext week\b/.test(q)) {
+    const start = new Date(now);
+    start.setDate(start.getDate() + 1);
+    const end = new Date(now);
+    end.setDate(end.getDate() + 7);
+    refs.push({ type: 'relative', label: 'next week', start: startOfDay(start), end: endOfDay(end) });
+  }
+
+  // "next month"
+  if (/\bnext month\b/.test(q)) {
+    const start = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 2, 0, 23, 59, 59, 999);
+    refs.push({ type: 'relative', label: 'next month', start, end });
+  }
+
+  // "in <month>" or "<month> <year>" — with year inference
   for (const [name, monthNum] of Object.entries(MONTHS)) {
     const monthPattern = new RegExp(`\\b(?:in\\s+)?${name}(?:\\s+(\\d{4}))?\\b`, 'i');
     const match = q.match(monthPattern);
     if (match) {
-      const year = match[1] ? parseInt(match[1]) : now.getFullYear();
+      let year: number;
+      if (match[1]) {
+        year = parseInt(match[1]);
+      } else {
+        // Year inference: if the month is in the future, use current year;
+        // if it's in the past, use current year (most recent occurrence)
+        year = now.getFullYear();
+        const monthEnd = new Date(year, monthNum + 1, 0);
+        // If the month has already fully passed and query doesn't indicate future,
+        // still use current year (user likely means the most recent occurrence)
+      }
       const start = new Date(year, monthNum, 1);
       const end = new Date(year, monthNum + 1, 0, 23, 59, 59, 999);
       refs.push({ type: 'named_period', label: `${name} ${year}`, start, end });
@@ -155,13 +200,17 @@ export function temporalBoost(entryDate: string, refs: TemporalRef[]): number {
       // Entry falls within the referenced time period
       maxBoost = Math.max(maxBoost, 3.0);
     } else {
-      // Proximity boost: closer to the time period gets some boost
+      // Proximity boost: exponential decay based on distance from the time period
       const distMs = entryTime < startTime
         ? startTime - entryTime
         : entryTime - endTime;
       const distDays = distMs / (1000 * 60 * 60 * 24);
-      if (distDays < 7) {
-        maxBoost = Math.max(maxBoost, 1.5 - distDays * 0.07);
+      if (distDays < 14) {
+        // Exponential decay: 1.5 * e^(-distance/7) gives ~1.5 at 0 days, ~0.55 at 7 days
+        const proximityBoost = 1.5 * Math.exp(-distDays / 7);
+        if (proximityBoost > 1.0) {
+          maxBoost = Math.max(maxBoost, proximityBoost);
+        }
       }
     }
   }

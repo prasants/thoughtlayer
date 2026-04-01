@@ -7,13 +7,14 @@
 import fs from 'fs';
 import path from 'path';
 import { ThoughtLayerDatabase, type CreateEntryInput, type KnowledgeEntry, type SearchOptions } from './storage/database.js';
-import { retrieve, type RetrievalResult, type RetrievalOptions } from './retrieve/pipeline.js';
+import { retrieve, invalidateVectorIndex, type RetrievalResult, type RetrievalOptions } from './retrieve/pipeline.js';
 import { createEmbeddingProvider, autoDetectEmbeddingProvider, EmbeddingCache, type EmbeddingProvider } from './retrieve/embeddings.js';
 import { createCurateProvider, type LLMProvider, type CurateResult } from './ingest/curate.js';
 import { extractEnrichmentKeywords } from './ingest/enrich.js';
 import { needsChunking, chunkContent, chunkTitle } from './ingest/chunk.js';
 import { extract, learnFromConversation, type ExtractConfig, type ExtractionResult } from './ingest/auto-extract.js';
 import { extractRelationships } from './ingest/relationships.js';
+import { PluginRegistry, type ThoughtLayerPlugin } from './plugins.js';
 
 export interface ThoughtLayerConfig {
   projectRoot: string;
@@ -37,6 +38,7 @@ export class ThoughtLayer {
   private curator?: LLMProvider;
   private config: ThoughtLayerConfig;
   private queryEmbeddingCache: EmbeddingCache;
+  private plugins: PluginRegistry = new PluginRegistry();
 
   /** Expose database for ingestion tracking. */
   get database(): ThoughtLayerDatabase { return this.db; }
@@ -204,6 +206,7 @@ export class ThoughtLayer {
           `${entry.title}\n${entry.content}`
         );
         this.db.storeEmbedding(entry.id, embedding, this.embedder.model);
+        invalidateVectorIndex(this.db);
       } catch (err: any) {
         const msg = err?.message ?? String(err);
         if (msg.includes('fetch') || msg.includes('ECONNREFUSED') || msg.includes('not found')) {
@@ -217,6 +220,67 @@ export class ThoughtLayer {
     }
 
     return entry;
+  }
+
+  /**
+   * Add multiple entries in batch with batch embedding support.
+   * Significantly faster than calling add() in a loop when using remote embedding APIs.
+   */
+  async addBatch(inputs: CreateEntryInput[]): Promise<KnowledgeEntry[]> {
+    const entries: KnowledgeEntry[] = [];
+    const textsToEmbed: string[] = [];
+    const entryIds: string[] = [];
+
+    // First pass: create all entries in the database
+    for (const input of inputs) {
+      const enrichedKeywords = extractEnrichmentKeywords(
+        input.title,
+        input.content,
+        input.keywords ?? []
+      );
+      const enrichedInput = {
+        ...input,
+        keywords: [...(input.keywords ?? []), ...enrichedKeywords],
+      };
+      const entry = this.db.create(enrichedInput);
+
+      // Extract and store knowledge graph relationships
+      const relationships = extractRelationships(entry.content, entry.title);
+      for (const rel of relationships) {
+        this.db.storeRelationship(entry.id, rel.subject, rel.predicate, rel.object, rel.confidence);
+      }
+
+      entries.push(entry);
+      textsToEmbed.push(`${entry.title}\n${entry.content}`);
+      entryIds.push(entry.id);
+    }
+
+    // Second pass: batch embed all entries
+    if (this.embedder && textsToEmbed.length > 0) {
+      try {
+        // Process in chunks to respect API rate limits
+        const BATCH_SIZE = 100;
+        for (let i = 0; i < textsToEmbed.length; i += BATCH_SIZE) {
+          const batchTexts = textsToEmbed.slice(i, i + BATCH_SIZE);
+          const batchIds = entryIds.slice(i, i + BATCH_SIZE);
+          const embeddings = await this.embedder.embedBatch(batchTexts);
+
+          for (let j = 0; j < embeddings.length; j++) {
+            this.db.storeEmbedding(batchIds[j], embeddings[j], this.embedder.model);
+          }
+        }
+        invalidateVectorIndex(this.db);
+      } catch (err: any) {
+        const msg = err?.message ?? String(err);
+        if (msg.includes('fetch') || msg.includes('ECONNREFUSED') || msg.includes('not found')) {
+          console.error(`⚠️  Entries saved, but batch embedding failed: ${this.embedder.model} is not reachable.`);
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    return entries;
   }
 
   /**
@@ -320,6 +384,41 @@ export class ThoughtLayer {
    */
   count() {
     return this.db.count();
+  }
+
+  /**
+   * Register a plugin for lifecycle hooks.
+   */
+  use(plugin: ThoughtLayerPlugin): void {
+    this.plugins.use(plugin);
+  }
+
+  /**
+   * Remove a plugin by name.
+   */
+  removePlugin(name: string): boolean {
+    return this.plugins.remove(name);
+  }
+
+  /**
+   * Run database optimisation (VACUUM, FTS optimize, PRAGMA optimize).
+   */
+  optimize() {
+    return this.db.optimize();
+  }
+
+  /**
+   * Get persistent embedding cache statistics.
+   */
+  cacheStats() {
+    return this.db.embeddingCacheStats();
+  }
+
+  /**
+   * Clear the persistent embedding cache.
+   */
+  clearCache() {
+    this.db.clearEmbeddingCache();
   }
 
   /**
