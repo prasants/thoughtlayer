@@ -589,9 +589,9 @@ program
 
 program
   .command('compress')
-  .description('Compress embeddings using Int8 scalar quantisation (~4x smaller)')
+  .description('Compress embeddings (~4x int8, ~15x polar, ~32x binary)')
   .option('-d, --dir <path>', 'Project directory', process.cwd())
-  .option('--codec <name>', 'Target codec (int8, raw)', 'int8')
+  .option('--codec <name>', 'Target codec (int8, polar, binary, raw)', 'int8')
   .action(async (opts) => {
     try {
       const tl = loadThoughtLayer(opts.dir);
@@ -633,7 +633,7 @@ program
     try {
       const { ThoughtLayerDatabase } = await import('../storage/database.js');
       const { cosineSimilarity } = await import('../retrieve/vector.js');
-      const { Int8Codec, RawCodec } = await import('../retrieve/codec.js');
+      const { Int8Codec, RawCodec, BinaryCodec, PolarCodec } = await import('../retrieve/codec.js');
 
       const tl = loadThoughtLayer(opts.dir);
       const db = (tl as any).db as InstanceType<typeof ThoughtLayerDatabase>;
@@ -645,34 +645,14 @@ program
       }
 
       const numQueries = Math.min(parseInt(opts.queries), allEmbeddings.length);
+      const codecs = [
+        { name: 'int8', codec: new Int8Codec() },
+        { name: 'polar', codec: new PolarCodec() },
+        { name: 'binary', codec: new BinaryCodec() },
+      ];
       const raw = new RawCodec();
-      const int8 = new Int8Codec();
 
       console.log(`\n🔬 Benchmark: ${allEmbeddings.length} embeddings, ${numQueries} queries\n`);
-
-      // 1. Storage comparison
-      let rawBytes = 0;
-      let int8Bytes = 0;
-      const encodedRaw: Buffer[] = [];
-      const encodedInt8: Buffer[] = [];
-
-      for (const { embedding } of allEmbeddings) {
-        const rb = raw.encode(embedding);
-        const ib = int8.encode(embedding);
-        rawBytes += rb.length;
-        int8Bytes += ib.length;
-        encodedRaw.push(rb);
-        encodedInt8.push(ib);
-      }
-
-      console.log('📦 Storage');
-      console.log(`   Raw:   ${(rawBytes / 1024).toFixed(1)} KB`);
-      console.log(`   Int8:  ${(int8Bytes / 1024).toFixed(1)} KB`);
-      console.log(`   Ratio: ${(rawBytes / int8Bytes).toFixed(2)}x\n`);
-
-      // 2. Recall: do raw and int8 produce the same top-10 ranking?
-      let totalOverlap = 0;
-      let totalSimDiff = 0;
 
       // Pick random query vectors from the corpus
       const queryIndices: number[] = [];
@@ -682,62 +662,75 @@ program
         if (!seen.has(idx)) { seen.add(idx); queryIndices.push(idx); }
       }
 
-      // Decode int8 versions
-      const int8Decoded = encodedInt8.map(b => int8.decode(b));
+      // Compute raw bytes for reference
+      let rawBytes = 0;
+      for (const { embedding } of allEmbeddings) {
+        rawBytes += raw.encode(embedding).length;
+      }
 
-      const t0 = performance.now();
+      // Pre-compute raw rankings for each query
+      const rawRankings: Set<number>[] = [];
       for (const qi of queryIndices) {
         const query = allEmbeddings[qi].embedding;
-
-        // Raw ranking
-        const rawScores = allEmbeddings.map((e, i) => ({ i, s: cosineSimilarity(query, e.embedding) }));
-        rawScores.sort((a, b) => b.s - a.s);
-        const rawTop10 = new Set(rawScores.slice(0, 10).map(r => r.i));
-
-        // Int8 ranking
-        const queryInt8 = int8.decode(int8.encode(query));
-        const int8Scores = int8Decoded.map((e, i) => ({ i, s: cosineSimilarity(queryInt8, e) }));
-        int8Scores.sort((a, b) => b.s - a.s);
-        const int8Top10 = new Set(int8Scores.slice(0, 10).map(r => r.i));
-
-        let overlap = 0;
-        for (const idx of int8Top10) if (rawTop10.has(idx)) overlap++;
-        totalOverlap += overlap;
-
-        // Similarity diff for top-1
-        totalSimDiff += Math.abs(rawScores[0].s - int8Scores[0].s);
+        const scores = allEmbeddings.map((e, i) => ({ i, s: cosineSimilarity(query, e.embedding) }));
+        scores.sort((a, b) => b.s - a.s);
+        rawRankings.push(new Set(scores.slice(0, 10).map(r => r.i)));
       }
-      const t1 = performance.now();
 
-      const avgOverlap = totalOverlap / numQueries;
-      const avgSimDiff = totalSimDiff / numQueries;
+      console.log(`📦 Storage (raw: ${(rawBytes / 1024).toFixed(1)} KB)\n`);
+      console.log('   Codec    Size (KB)    Ratio    Overlap   Sim Drift   Decode/vec');
+      console.log('   -----    ---------    -----    -------   ---------   ----------');
 
-      console.log('🎯 Recall (top-10 overlap, raw vs int8)');
-      console.log(`   Average overlap: ${avgOverlap.toFixed(1)}/10`);
-      console.log(`   Average top-1 similarity drift: ${avgSimDiff.toFixed(6)}`);
-      console.log(`   Benchmark time: ${(t1 - t0).toFixed(0)}ms\n`);
+      for (const { name, codec: c } of codecs) {
+        // 1. Storage
+        let codecBytes = 0;
+        const encoded: Buffer[] = [];
+        for (const { embedding } of allEmbeddings) {
+          const buf = c.encode(embedding);
+          codecBytes += buf.length;
+          encoded.push(buf);
+        }
+        const ratio = rawBytes / codecBytes;
 
-      // 3. Latency: decode + search time
-      const decodeIterations = 100;
-      const dt0 = performance.now();
-      for (let iter = 0; iter < decodeIterations; iter++) {
-        for (const buf of encodedInt8) int8.decode(buf);
+        // 2. Recall
+        const decoded = encoded.map(b => c.decode(b));
+        let totalOverlap = 0;
+        let totalSimDiff = 0;
+
+        for (let q = 0; q < queryIndices.length; q++) {
+          const qi = queryIndices[q];
+          const query = allEmbeddings[qi].embedding;
+          const queryDec = c.decode(c.encode(query));
+
+          const scores = decoded.map((e, i) => ({ i, s: cosineSimilarity(queryDec, e) }));
+          scores.sort((a, b) => b.s - a.s);
+          const top10 = new Set(scores.slice(0, 10).map(r => r.i));
+
+          let overlap = 0;
+          for (const idx of top10) if (rawRankings[q].has(idx)) overlap++;
+          totalOverlap += overlap;
+
+          // Top-1 sim drift
+          const rawQuery = allEmbeddings.map((e, i) => ({ i, s: cosineSimilarity(query, e.embedding) }));
+          rawQuery.sort((a, b) => b.s - a.s);
+          totalSimDiff += Math.abs(rawQuery[0].s - scores[0].s);
+        }
+
+        const avgOverlap = totalOverlap / numQueries;
+        const avgSimDiff = totalSimDiff / numQueries;
+
+        // 3. Decode latency
+        const decodeIterations = 100;
+        const dt0 = performance.now();
+        for (let iter = 0; iter < decodeIterations; iter++) {
+          for (const buf of encoded) c.decode(buf);
+        }
+        const dt1 = performance.now();
+        const decodeTimePerVec = (dt1 - dt0) / (decodeIterations * encoded.length);
+
+        console.log(`   ${name.padEnd(8)} ${(codecBytes / 1024).toFixed(1).padStart(9)}    ${ratio.toFixed(1).padStart(5)}x   ${avgOverlap.toFixed(1).padStart(4)}/10    ${avgSimDiff.toFixed(6).padStart(9)}   ${(decodeTimePerVec * 1000).toFixed(1).padStart(6)}us`);
       }
-      const dt1 = performance.now();
-      const decodeTimePerVec = (dt1 - dt0) / (decodeIterations * encodedInt8.length);
 
-      console.log('⏱️  Latency');
-      console.log(`   Int8 decode: ${(decodeTimePerVec * 1000).toFixed(1)}µs per vector`);
-      console.log(`   For ${allEmbeddings.length} vectors: ${(decodeTimePerVec * allEmbeddings.length).toFixed(2)}ms total\n`);
-
-      // Verdict
-      if (avgOverlap >= 9.0) {
-        console.log('✅ Int8 compression is safe: negligible recall impact.');
-      } else if (avgOverlap >= 7.0) {
-        console.log('⚠️  Int8 compression has minor recall impact. Review your use case.');
-      } else {
-        console.log('❌ Int8 compression significantly affects recall. Not recommended for this data.');
-      }
       console.log('');
 
     } catch (err) {

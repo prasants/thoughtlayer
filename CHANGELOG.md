@@ -5,6 +5,16 @@ All notable changes to ThoughtLayer will be documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-04-01
+
+### Added
+- **Polar codec** (`--codec polar`): TurboQuant-inspired polar-coordinate quantisation. Random block-diagonal rotation spreads vector structure, then dimension pairs are converted to 4-bit quantised angles. A single norm value preserves magnitude. Achieves ~15x compression with cosine similarity drift below 0.01. Deterministic via seeded xorshift128 PRNG, so identical inputs always produce identical outputs.
+- **Binary codec** (`--codec binary`): Single-bit sign quantisation. Each dimension stored as one bit (positive or negative), producing +1.0/-1.0 on decode. Achieves ~32x compression. Best suited for coarse first-pass filtering or storage-constrained environments where retrieval precision is secondary.
+- **Multi-codec benchmark**: `thoughtlayer benchmark` now compares all codecs (Int8, Polar, Binary) against raw in a single table, reporting storage ratio, top-10 ranking overlap, similarity drift, and decode latency per vector.
+
+### Changed
+- `thoughtlayer compress` now accepts `--codec polar`, `--codec binary`, `--codec int8`, or `--codec raw`.
+
 ## [0.5.0] - 2026-04-01
 
 ### Fixed

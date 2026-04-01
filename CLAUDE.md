@@ -4,7 +4,7 @@
 
 ThoughtLayer is memory infrastructure for AI agents. Local-first, cloud-optional, BYOLLM. It gives agents persistent, searchable memory backed by SQLite with a 7-signal retrieval pipeline (vector, keyword, entity, graph, temporal, freshness, importance fused via Reciprocal Rank Fusion).
 
-**Version:** 0.4.1
+**Version:** 0.5.1
 **Language:** TypeScript (strict mode)
 **Author:** Prasant Sudhakaran
 **Licence:** MIT
@@ -14,7 +14,7 @@ ThoughtLayer is memory infrastructure for AI agents. Local-first, cloud-optional
 ```bash
 npm install
 npm run build          # tsc → dist/
-npm test               # vitest, 225+ tests, all should pass
+npm test               # vitest, 244+ tests, all should pass
 npm run lint           # eslint src/
 npm run benchmark      # performance evaluation
 ```
@@ -40,7 +40,7 @@ src/
 │   ├── pipeline.ts         # Multi-signal fusion (RRF, k=60)
 │   ├── vector.ts           # Brute-force cosine similarity (Phase 0)
 │   ├── embeddings.ts       # OpenAI + Ollama providers, LRU cache (100 entries)
-│   ├── codec.ts            # Int8 scalar quantisation (~4x compression)
+│   ├── codec.ts            # Embedding codecs: Raw, Int8 (~4x), Polar (~15x), Binary (~32x)
 │   ├── entity.ts           # Fuzzy name matching (Levenshtein)
 │   ├── graph.ts            # 2-hop relationship traversal
 │   ├── intent.ts           # Query intent classification (7 types, regex)
@@ -89,16 +89,15 @@ src/
 
 ### Code Quality
 - **Embedding cache uses SHA-256 text hashing** (`embeddings.ts`). Extremely low collision risk but no collision handling.
-- **Int8 codec assumes uniform value ranges** (`codec.ts`). Extreme outlier dimensions get quantised poorly. Typical normalised embeddings are fine; edge case for unusual models.
-- **No explicit error types.** All errors are plain `Error`. Custom error classes would improve debugging.
+- **Polar codec angle quantisation** (`codec.ts`). 4-bit angles have max error of pi/16 per dimension pair. For high-dimensional embeddings this averages out, but low-dimensional vectors (< 64 dims) will see measurably higher cosine drift.
 
 ## Testing
 
-225+ tests across 24 files. Key test categories:
+244+ tests across 24 files. Key test categories:
 - Core API (add, query, learn, archive)
 - Storage (CRUD, FTS5, content hash dedup)
 - Retrieval pipeline (RRF fusion, score normalisation)
-- Vector + codec (cosine similarity, Int8 round-trip)
+- Vector + codec (cosine similarity, Int8/Polar/Binary round-trip, ranking preservation)
 - Ingestion (chunking, enrichment, file scanning)
 - Knowledge graph (15+ relationship patterns, entity resolution)
 - Query intelligence (intent detection, temporal parsing)
