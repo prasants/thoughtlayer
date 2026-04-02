@@ -95,6 +95,17 @@ export const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    version: 5,
+    description: 'Add codec column to embeddings table if missing (upgrade from v0.4.x)',
+    up: (db) => {
+      const columns = db.pragma('table_info(embeddings)') as Array<{ name: string }>;
+      const hasCodec = columns.some((c) => c.name === 'codec');
+      if (!hasCodec) {
+        db.exec("ALTER TABLE embeddings ADD COLUMN codec TEXT NOT NULL DEFAULT 'raw'");
+      }
+    },
+  },
 ];
 
 /**

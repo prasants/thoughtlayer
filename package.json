@@ -1,6 +1,6 @@
 {
   "name": "thoughtlayer",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "Memory infrastructure for AI agents \u2014 local-first, cloud-optional, BYOLLM",
   "type": "module",
   "main": "dist/index.js",

@@ -2,7 +2,7 @@
  * OpenClaw Plugin Integration
  *
  * Native ThoughtLayer plugin for OpenClaw agent frameworks.
- * Registers four tools: query, add, ingest, health.
+ * Registers five tools: query, add, ingest, health, preflight.
  * Uses ThoughtLayer's library API directly: no CLI, no exec, no shell.
  *
  * @example
@@ -43,7 +43,7 @@ export interface OpenClawPluginOptions {
  * Create an OpenClaw plugin registration function.
  *
  * Returns a function that accepts the OpenClaw plugin API and registers
- * four tools: thoughtlayer_query, thoughtlayer_add, thoughtlayer_ingest,
+ * five tools: thoughtlayer_query, thoughtlayer_add, thoughtlayer_ingest,
  * and thoughtlayer_health.
  */
 export function createOpenClawPlugin(
@@ -284,6 +284,79 @@ export function createOpenClawPlugin(
               text: `Entry added: "${entry.title}" (id: ${entry.id}, domain: ${entry.domain})`,
             },
           ],
+        };
+      },
+    });
+
+    // ─── thoughtlayer_preflight ───────────────────────────────────────
+    api.registerTool({
+      name: 'thoughtlayer_preflight',
+      description:
+        'MANDATORY PRE-RESPONSE CHECK. Call this BEFORE responding to any user message. ' +
+        'Pass the user\'s message and this tool checks ThoughtLayer for known corrections, ' +
+        'past mistakes, gotchas, and relevant context. Returns critical information that ' +
+        'MUST be considered before you respond. Skipping this tool has caused repeated ' +
+        'failures and user frustration. When in doubt, call this tool.',
+      parameters: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            description: "The user's message to check against known corrections and context",
+          },
+        },
+        required: ['message'],
+      },
+      async execute(
+        _id: string,
+        params: { message: string }
+      ) {
+        if (doIngestOnQuery) {
+          await runIngest(ingestPathsList);
+        }
+
+        const tl = await getTL();
+        const results = await tl.query(params.message, { topK: 10 });
+
+        const corrections: RetrievalResult[] = [];
+        const context: RetrievalResult[] = [];
+
+        for (const r of results) {
+          if (r.entry.domain === 'corrections' || r.entry.importance >= 0.9) {
+            corrections.push(r);
+          } else if (r.score >= 0.3) {
+            context.push(r);
+          }
+        }
+
+        const lines: string[] = [];
+
+        if (corrections.length > 0) {
+          lines.push('\u26a0\ufe0f  CORRECTIONS & GOTCHAS (read these before responding):\n');
+          for (const r of corrections) {
+            lines.push(`  \ud83d\udd34 ${r.entry.title}`);
+            const body = r.entry.content.substring(0, 300).replace(/\n/g, ' ');
+            lines.push(`     ${body}${r.entry.content.length > 300 ? '...' : ''}\n`);
+          }
+        }
+
+        if (context.length > 0) {
+          lines.push('\ud83d\udccb RELEVANT CONTEXT:\n');
+          for (const r of context.slice(0, 5)) {
+            lines.push(`  \ud83d\udcc4 ${r.entry.title} (${r.entry.domain})`);
+            const preview = r.entry.content.substring(0, 150).replace(/\n/g, ' ');
+            lines.push(`     ${preview}${r.entry.content.length > 150 ? '...' : ''}\n`);
+          }
+        }
+
+        if (lines.length === 0) {
+          return {
+            content: [{ type: 'text' as const, text: 'No relevant corrections or context found. Proceed normally.' }],
+          };
+        }
+
+        return {
+          content: [{ type: 'text' as const, text: lines.join('\n') }],
         };
       },
     });

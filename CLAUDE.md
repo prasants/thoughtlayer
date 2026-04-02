@@ -4,7 +4,7 @@
 
 ThoughtLayer is memory infrastructure for AI agents. Local-first, cloud-optional, BYOLLM. It gives agents persistent, searchable memory backed by SQLite with a 7-signal retrieval pipeline (vector, keyword, entity, graph, temporal, freshness, importance fused via Reciprocal Rank Fusion).
 
-**Version:** 0.5.1
+**Version:** 0.6.0
 **Language:** TypeScript (strict mode)
 **Author:** Prasant Sudhakaran
 **Licence:** MIT
@@ -48,7 +48,7 @@ src/
 │   ├── rerank.ts           # Optional LLM reranking (Phase 1)
 │   └── versioning.ts       # Fact versioning, contradiction detection
 ├── integrations/
-│   ├── openclaw-plugin.ts  # Native OpenClaw plugin (4 tools registered)
+│   ├── openclaw-plugin.ts  # Native OpenClaw plugin (5 tools: query, add, ingest, health, preflight)
 │   ├── langchain.ts        # LangChain memory adapter
 │   ├── vercel-ai.ts        # Vercel AI SDK provider
 │   ├── openai-agents.ts    # OpenAI agents tools

@@ -60,17 +60,18 @@ describe('OpenClaw Plugin', () => {
       expect(typeof plugin).toBe('function');
     });
 
-    it('registers four tools', () => {
+    it('registers five tools', () => {
       const plugin = createOpenClawPlugin(tmpDir);
       const { api, tools } = createMockAPI();
 
       plugin(api);
 
-      expect(tools.size).toBe(4);
+      expect(tools.size).toBe(5);
       expect(tools.has('thoughtlayer_query')).toBe(true);
       expect(tools.has('thoughtlayer_add')).toBe(true);
       expect(tools.has('thoughtlayer_ingest')).toBe(true);
       expect(tools.has('thoughtlayer_health')).toBe(true);
+      expect(tools.has('thoughtlayer_preflight')).toBe(true);
     });
 
     it('each tool has name, description, parameters, and execute', () => {
@@ -246,7 +247,7 @@ describe('OpenClaw Plugin', () => {
       plugin(api);
 
       // Tool should be registered (would fail if projectDir was wrong)
-      expect(tools.size).toBe(4);
+      expect(tools.size).toBe(5);
     });
   });
 
@@ -270,6 +271,42 @@ describe('OpenClaw Plugin', () => {
       });
 
       expect(result.content[0].text).toContain('v0.4.0');
+    });
+  });
+
+  describe('thoughtlayer_preflight', () => {
+    it('returns corrections when domain matches', async () => {
+      const plugin = createOpenClawPlugin(tmpDir);
+      const { api, tools } = createMockAPI();
+      plugin(api);
+
+      // Add a correction
+      await tools.get('thoughtlayer_add').execute('test', {
+        content: 'Always try alternative approaches before saying something is unavailable',
+        domain: 'corrections',
+        importance: '1.0',
+        title: 'BEFORE SAYING CANT: Exhaust alternatives first',
+      });
+
+      // Preflight should surface it
+      const result = await tools.get('thoughtlayer_preflight').execute('test', {
+        message: 'I cannot access that file',
+      });
+
+      expect(result.content[0].text).toContain('CORRECTIONS');
+      expect(result.content[0].text).toContain('BEFORE SAYING CANT');
+    });
+
+    it('returns no corrections message on empty database', async () => {
+      const plugin = createOpenClawPlugin(tmpDir);
+      const { api, tools } = createMockAPI();
+      plugin(api);
+
+      const result = await tools.get('thoughtlayer_preflight').execute('test', {
+        message: 'something completely unrelated to anything stored',
+      });
+
+      expect(result.content[0].text).toContain('No relevant corrections');
     });
   });
 

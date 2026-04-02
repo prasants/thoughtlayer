@@ -5,6 +5,15 @@ All notable changes to ThoughtLayer will be documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-04-02
+
+### Added
+- **Preflight tool** (`thoughtlayer_preflight`): Mandatory pre-response check for the OpenClaw plugin. Queries ThoughtLayer for known corrections, past mistakes, and relevant context before the agent responds. Separates results into corrections (domain `corrections` or importance >= 0.9) and general context (score >= 0.3).
+- **Schema migration v5**: Adds `codec` column to the embeddings table if missing, enabling graceful upgrade from v0.4.x databases without manual intervention.
+
+### Changed
+- OpenClaw plugin now registers 5 tools (was 4): query, add, ingest, health, and preflight.
+
 ## [0.5.1] - 2026-04-01
 
 ### Added
